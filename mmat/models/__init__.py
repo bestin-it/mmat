@@ -1,2 +1,1 @@
-# MMAT Models Package
-# This package will contain interfaces and implementations for AI models (Reasoning, Vision).
+# This file makes the 'models' directory a Python package.

@@ -1,1 +1,1 @@
-# MMAT CLI Module
+# This file makes the 'cli' directory a Python package.

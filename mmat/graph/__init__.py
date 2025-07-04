@@ -1,3 +1,1 @@
-# mmat/graph/__init__.py
-
-from .graph_api import GraphAPI
+# This file makes the 'graph' directory a Python package.

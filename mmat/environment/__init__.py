@@ -1,2 +1,1 @@
-# mmat/environment/__init__.py
-# This file marks the environment directory as a Python package.
+# This file makes the 'environment' directory a Python package.

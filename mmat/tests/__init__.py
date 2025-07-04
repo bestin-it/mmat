@@ -1,2 +1,1 @@
-# MMAT Tests Module
-# Contains test cases for the framework.
+# This file makes the 'tests' directory a Python package.

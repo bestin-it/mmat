@@ -1,2 +1,1 @@
-# MMAT Reporting Module
-# Handles generating and outputting test reports.
+# This file makes the 'reporting' directory a Python package.

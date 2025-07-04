@@ -1,2 +1,1 @@
-# MMAT Utilities Module
-# Contains various utility functions.
+# This file makes the 'utils' directory a Python package.

@@ -1,2 +1,1 @@
-# MMAT Configuration Module
-# Handles loading and managing framework configuration.
+# This file makes the 'config' directory a Python package.

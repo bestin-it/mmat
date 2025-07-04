@@ -1,2 +1,1 @@
-# MMAT Plugins Module
-# Handles loading and managing framework plugins.
+# This file makes the 'plugins' directory a Python package.

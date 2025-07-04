@@ -1,2 +1,1 @@
-# MMAT Core Module
-# Contains the main logic for test execution and management.
+# This file makes the 'core' directory a Python package.
