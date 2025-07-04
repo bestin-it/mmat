@@ -18,15 +18,15 @@ setup(
             "mmat=mmat.cli.main:main",
         ],
     },
-    author="Your Name", # Replace with your name
-    author_email="your.email@example.com", # Replace with your email
+    author="Artur Poniedziałek",
+    author_email="artur.poniedzialek@bestin-it.com",
     description="Model-based Multi-Agent Testing Framework",
-    long_description=open("README.md").read(),
+    long_description=open("README.md", encoding="utf-8").read(),
     long_description_content_type="text/markdown",
-    url="https://github.com/yourusername/mmat", # Replace with your project URL
+    url="https://github.com/bestin-it/mmat",
     classifiers=[
         "Programming Language :: Python :: 3",
-        "License :: OSI Approved :: MIT License", # Or your chosen license
+        "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
     python_requires=">=3.6", # Specify your Python version requirement
