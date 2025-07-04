@@ -93,7 +93,7 @@ class MMAT:
 
         elif args.command == 'export':
             print("[MMAT] Exporting test plan...")
-            test_plan_path = args.test
+            test_plan_path = args.test_plan_path
             output_path = args.output
             force = args.force
 
