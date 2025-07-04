@@ -1,6 +1,6 @@
 # MMAT - Model-based Manual Acceptance Testing framework
 
-MMAT is a Python framework designed to facilitate model-based manual acceptance testing. It leverages various components like reasoning models, vision models, and environments (like browsers) to automate the process of generating, executing, and reporting on manual acceptance tests based on functional descriptions or other data sources.
+MMAT is a Python framework designed to facilitate model-based manual acceptance testing. It was created by bestin-it.com blog by Artur Poniedziałek. It leverages various components like reasoning models, vision models, and environments (like browsers) to automate the process of generating, executing, and reporting on manual acceptance tests based on functional descriptions or other data sources.
 
 The core idea is to start with a simple description or prompt of the desired functionality. MMAT can then interact with a given URL or web page(s) to understand the user interface and behavior. Based on this analysis, the framework aims to generate a structured test plan, typically in JSON or YAML format. This plan describes the test with a clear list of steps needed to repeat the manual acceptance test.
 
