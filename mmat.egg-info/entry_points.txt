@@ -1,0 +1,2 @@
+[console_scripts]
+mmat = mmat.cli.main:main

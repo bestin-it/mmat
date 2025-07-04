@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MMAT - Model-based Manual Acceptance Testing framework</title>
+  <style>
+    /* ----------------------------------------
+       Reset and base styles for the page
+       ---------------------------------------- */
+    body {
+      margin: 0;
+      padding: 0;
+      font-family:
+        -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif,
+        "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+      line-height: 1.6;
+      background-color: #f4f7f6;
+      color: #333;
+    }
+
+    /* ----------------------------------------
+       Centered wrapper at 80% of viewport width
+       ---------------------------------------- */
+    .wrapper {
+      width: 70vw;           /* 80% of the viewport width */
+      margin: 0 auto;        /* center horizontally */
+      padding: 20px 0;       /* top & bottom padding */
+      box-sizing: border-box;
+    }
+
+    /* ----------------------------------------
+       Flex container with min-height 95vh
+       ---------------------------------------- */
+    .container {
+      display: flex;
+      min-height: 95vh;      /* at least 95% of the viewport height */
+      /* No fixed height beyond min-height; grows with content */
+    }
+
+    /* ----------------------------------------
+       Sidebar (left menu)
+       ----------------------------------------
+       • Fixed width: 300px
+       • “Floating” next to content via position: sticky
+       • Stretches to at least 95vh, but grows with content
+       ---------------------------------------- */
+    .sidebar {
+      width: 300px;                  /* fixed width for sidebar */
+      background-color: #e9ecef;
+      padding: 20px 0 20px 20px;
+      box-shadow: 2px 0 4px rgba(0, 0, 0, 0.05);
+      overflow-y: auto;
+      flex-shrink: 0;                /* do not shrink below 300px */
+      position: sticky;              /* “float” as you scroll */
+      top: 20px;                     /* stick 20px from top of viewport */
+      align-self: flex-start;        /* ensures sticky works inside flex */
+      box-sizing: border-box;
+      border-right: 1px solid #ccc;
+    }
+
+    .sidebar h3 {
+      color: #0056b3;
+      margin-top: 0;
+      padding-bottom: 5px;
+      border-bottom: 1px solid #ccc;
+      margin-bottom: 15px;
+      font-size: 1.2em;
+    }
+
+    .sidebar ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .sidebar li {
+      margin-bottom: 5px;
+    }
+
+    .sidebar a {
+      display: block;
+      color: #333;
+      text-decoration: none;
+      padding: 5px 10px;
+      border-radius: 3px;
+      transition: background-color 0.2s ease;
+      font-size: 1em;
+    }
+
+    .sidebar a:hover {
+      background-color: #dcdcdc;
+      text-decoration: none;
+    }
+
+    .sidebar a.active {
+      background-color: #007bff;
+      color: white;
+    }
+
+    .sidebar ul ul {
+      padding-left: 20px;
+      margin-top: 5px;
+    }
+
+    /* ----------------------------------------
+       Main content area
+       ----------------------------------------
+       • Pushed right by sidebar’s 300px
+       • Width = calc(100% - 300px)
+       • Grows beyond 95vh if content is longer
+       ---------------------------------------- */
+    .main-content {
+      flex-grow: 1;
+      margin-left: 0px;              /* same as .sidebar width */
+      padding: 0 20px 20px 20px;
+      overflow-y: auto;
+      width: 95%;
+      box-sizing: border-box;
+    }
+
+    /* ----------------------------------------
+       Inner white container for actual content
+       ---------------------------------------- */
+    .container-inner {
+      max-width: 100%;
+      margin: 0 auto;
+      background-color: #fff;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      box-sizing: border-box;
+    }
+
+    /* Each section is hidden by default; shown when “active” */
+    .content-section {
+      display: none;
+    }
+
+    .content-section.active {
+      display: block;
+    }
+
+    /* ----------------------------------------
+       Heading styles
+       ---------------------------------------- */
+    h1, h2, h3 {
+      color: #0056b3;
+      margin-top: 20px;
+      margin-bottom: 10px;
+    }
+
+    h1 {
+      border-bottom: 2px solid #0056b3;
+      padding-bottom: 10px;
+      margin-bottom: 20px;
+      font-size: 2em;
+    }
+
+    h2 {
+      border-bottom: 1px solid #eee;
+      padding-bottom: 5px;
+      margin-bottom: 15px;
+      font-size: 1.5em;
+    }
+
+    h3 {
+      font-size: 1.2em;
+    }
+
+    /* ----------------------------------------
+       Paragraph, list, and code styling
+       ---------------------------------------- */
+    p {
+      margin-bottom: 15px;
+    }
+
+    ul, ol {
+      margin-bottom: 15px;
+      padding-left: 20px;
+    }
+
+    li {
+      margin-bottom: 8px;
+    }
+
+    pre {
+      background-color: #e9ecef;
+      padding: 15px;
+      border-radius: 5px;
+      overflow-x: auto;
+      margin-bottom: 15px;
+    }
+
+    code {
+      font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;
+      font-size: 0.9em;
+    }
+
+    pre code {
+      display: block;
+      padding: 0;
+      background-color: transparent;
+    }
+
+    a {
+      color: #007bff;
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Centered wrapper -->
+  <div class="wrapper">
+    <div class="container">
+      <!-- Sidebar menu -->
+      <div class="sidebar">
+        <h3>Table of Contents</h3>
+        <ul>
+          <li><a href="#section-overview">1. Overview</a></li>
+          <li><a href="#section-features-planned">2. Features (Planned)</a></li>
+          <li><a href="#section-installation">3. Installation</a></li>
+          <li><a href="#section-setting-up-mmat-alias-windows">4. Setting up MMAT Alias (Windows)</a></li>
+          <li>
+            <a href="#section-project-setup-and-structure">5. Project Setup and Structure</a>
+            <ul>
+              <li><a href="#section-testsfunctionallogin_test_planyaml">5.1. tests/functional/login_test_plan.yaml</a></li>
+              <li><a href="#section-testsfunctionalregistration_test_planjson">5.2. tests/functional/registration_test_plan.json</a></li>
+              <li><a href="#section-configconfigyaml">5.3. config/config.yaml</a></li>
+              <li><a href="#section-requirementstxt">5.4. requirements.txt</a></li>
+            </ul>
+          </li>
+          <li><a href="#section-setting-up-local-models-with-lm-studio">6. Setting up Local Models with LM Studio</a></li>
+          <li><a href="#section-understanding-graphs-in-mmat">7. Understanding Graphs in MMAT</a></li>
+          <li>
+            <a href="#section-usage-planned">8. Usage (Planned)</a>
+            <ul>
+              <li><a href="#section-mmat-run">8.1. mmat run</a></li>
+              <li><a href="#section-mmat-build">8.2. mmat build</a></li>
+              <li><a href="#section-mmat-export">8.3. mmat export</a></li>
+            </ul>
+          </li>
+          <li><a href="#section-creating-tests">9. Creating Tests</a></li>
+          <li><a href="#section-contributing-planned">10. Contributing (Planned)</a></li>
+          <li><a href="#section-license">11. License</a></li>
+          <li><a href="#section-acknowledgments">12. Acknowledgments</a></li>
+        </ul>
+      </div>
+
+      <!-- Main content area -->
+      <div class="main-content">
+        <div class="container-inner">
+          <!-- 1. Overview -->
+          <div id="section-overview" class="content-section">
+            <h1 id="mmat-model-based-manual-acceptance-testing-framework">
+              1. MMAT – Model-based Manual Acceptance Testing framework
+            </h1>
+            <p>
+              MMAT is a Python framework designed to facilitate model-based manual acceptance testing. It leverages various components like
+              reasoning models, vision models, and environments (like browsers) to automate the process of generating, executing, and reporting
+              on manual acceptance tests based on functional descriptions or other data sources.
+            </p>
+            <p>
+              The core idea is to start with a simple description or prompt of the desired functionality. MMAT can then interact with a given URL
+              or web page(s) to understand the user interface and behavior. Based on this analysis, the framework aims to generate a structured
+              test plan, typically in JSON or YAML format. This plan describes the test with a clear list of steps needed to repeat the manual
+              acceptance test.
+            </p>
+            <p>
+              Furthermore, MMAT is designed to allow users to generate executable code, such as Playwright Python scripts, directly from this
+              structured test plan. The framework should also provide the capability to run this generated code, enabling automated execution of
+              the manual acceptance tests defined through the model-based approach.
+            </p>
+          </div>
+
+          <!-- 2. Features (Planned) -->
+          <div id="section-features-planned" class="content-section">
+            <h2 id="features-planned">2. Features (Planned)</h2>
+            <ul>
+              <li><strong>Model-based Test Plan Generation:</strong> Generate test suites and test cases from functional descriptions or structured data using AI models.</li>
+              <li><strong>Environment Interaction:</strong> Interact with various environments (e.g., web browsers via Puppeteer) to execute test steps.</li>
+              <li><strong>Test Data Management:</strong> Manage and utilize test data for test execution.</li>
+              <li><strong>Validation and Analysis:</strong> Validate test results and analyze outcomes using models.</li>
+              <li><strong>Reporting:</strong> Generate test reports in various formats.</li>
+              <li><strong>Plugin System:</strong> Allow extending the framework with custom components (environments, reporters, models, etc.).</li>
+              <li><strong>CLI Interface:</strong> Command-line interface for running and building test plans.</li>
+            </ul>
+          </div>
+
+          <!-- 3. Installation -->
+          <div id="section-installation" class="content-section">
+            <h2 id="installation">3. Installation</h2>
+            <p>MMAT is a Python package. You can install it using pip.</p>
+            <p><strong>Prerequisites:</strong></p>
+            <ul>
+              <li>Python 3.8+</li>
+              <li>pip</li>
+            </ul>
+            <p><strong>Installation via pip (Recommended):</strong></p>
+            <p>Once the package is published to PyPI:</p>
+            <pre><code class="language-bash">pip install mmat</code></pre>
+            <p><strong>Installation from Source:</strong></p>
+            <p>If you want to install the latest version directly from the source code:</p>
+            <pre><code class="language-bash">git clone https://github.com/yourusername/mmat.git  # Replace with actual repo URL
+cd mmat
+pip install .</code></pre>
+            <p>This will install the <code>mmat</code> package and its dependencies into your Python environment.</p>
+          </div>
+
+          <!-- 4. Setting up MMAT Alias (Windows) -->
+          <div id="section-setting-up-mmat-alias-windows" class="content-section">
+            <h2 id="setting-up-mmat-alias-windows">4. Setting up MMAT Alias (Windows)</h2>
+            <p>To easily run MMAT commands from any directory in your Windows terminal (Command Prompt or PowerShell), you can create an alias or a batch file.</p>
+
+            <p><strong>Method 1: Using a Batch File (Recommended)</strong></p>
+            <ol>
+              <li>Open a text editor (like Notepad).</li>
+              <li>Paste the following content:
+                <pre><code class="language-batch">@echo off
+"C:\Path\To\Your\Python\Scripts\mmat.exe" %*</code></pre>
+                <em>Replace <code>"C:\Path\To\Your\Python\Scripts\mmat.exe"</code> with the actual path to the <code>mmat.exe</code> executable in your Python environment’s <code>Scripts</code> directory. You can find this path by running <code>where mmat</code> in your terminal after installing MMAT.</em>
+              </li>
+              <li>Save the file as <code>mmat.bat</code> in a directory that’s included in your system’s <code>PATH</code> environment variable (e.g., <code>C:\Windows\System32</code> or a custom folder you’ve added to <code>PATH</code>).</li>
+              <li>Close and reopen your terminal. You should now be able to run <code>mmat</code> commands directly.</li>
+            </ol>
+
+            <p><strong>Method 2: Using <code>doskey</code> (Temporary/per-session)</strong></p>
+            <p>You can create a temporary alias using the <code>doskey</code> command in Command Prompt:</p>
+            <pre><code class="language-cmd">doskey mmat="C:\Path\To\Your\Python\Scripts\mmat.exe" $*</code></pre>
+            <em>Replace <code>"C:\Path\To\Your\Python\Scripts\mmat.exe"</code> with the actual path.</em> This alias will last only for the current terminal session. To make it permanent, add this line to a batch file that runs when your terminal starts. :contentReference[oaicite:1]{index=1}
+          </div>
+
+          <!-- 5. Project Setup and Structure -->
+          <div id="section-project-setup-and-structure" class="content-section">
+            <h2 id="project-setup-and-structure">5. Project Setup and Structure</h2>
+            <p>MMAT provides an <code>init</code> command to help you quickly set up a basic project structure. This command creates a directory with a suggested layout for your test plans and configuration.</p>
+            <p>To initialize a new MMAT project, navigate to the directory where you want to create the project and run:</p>
+            <pre><code class="language-bash">mmat init [project_name]</code></pre>
+            <ul>
+              <li><code>[project_name]</code> (Optional): The name of the directory to create for your project. If not provided, it defaults to <code>my_mmat_project</code>.</li>
+            </ul>
+            <p>This will create a directory structure similar to:</p>
+            <pre><code>[project_name]/
+├── tests/
+│   └── # Your test plans go here (e.g., functional/login_test_plan.yaml)
+├── config/
+│   └── config.yaml # Your MMAT configuration file
+└── # Other project files (e.g., requirements.txt, README.md)</code></pre>
+            <p>After initialization, you’ll integrate the <code>mmat</code> library into your project’s dependencies (e.g., adding <code>mmat</code> to <code>requirements.txt</code>).</p>
+            <p>The typical structure when using <code>mmat</code> might look like:</p>
+            <pre><code>your_project/
+├── tests/
+│   ├── functional/
+│   │   ├── login_test_plan.yaml
+│   │   └── registration_test_plan.json
+│   └── __init__.py # Optional, depending on how you organize
+├── config/
+│   └── config.yaml
+├── src/ # Your application source code
+│   └── …
+├── .gitignore
+├── requirements.txt # Project dependencies
+└── README.md # Project’s README</code></pre>
+            <p>In this structure:</p>
+            <ul>
+              <li><code>tests/</code>: Store your test plans here. You can organize into subdirectories (e.g., <code>functional/</code>, <code>integration/</code>).</li>
+              <li><code>config/</code>: Keep <code>config.yaml</code> (MMAT’s global configuration for models, environments, etc.).</li>
+              <li><code>requirements.txt</code>: List <code>mmat</code> and any other dependencies.</li>
+            </ul>
+
+            <!-- 5.1 tests/functional/login_test_plan.yaml -->
+            <div id="section-testsfunctionallogin_test_planyaml" class="content-section">
+              <h3 id="testsfunctionallogin_test_planyaml">5.1. <code>tests/functional/login_test_plan.yaml</code></h3>
+              <pre><code class="language-yaml">test_plan:
+  name: User Login Tests
+  description: Tests for the user login feature
+  test_suites:
+    - name: Standard Login
+      description: Test standard user login scenarios
+      test_cases:
+        - name: Successful Login with Valid Credentials
+          description: Verify a user can log in successfully
+          steps:
+            - action: navigate
+              target: /login
+              description: Go to the login page
+            - action: fill
+              selector: '#username'
+              value: testuser
+              description: Enter valid username
+            - action: fill
+              selector: '#password'
+              value: password123
+              description: Enter valid password
+            - action: click
+              selector: '#login-button'
+              description: Click the login button
+            - action: assert_url
+              expected: /dashboard
+              description: Verify redirection to dashboard
+        - name: Failed Login with Invalid Password
+          description: Verify login fails with incorrect password
+          steps:
+            - action: navigate
+              target: /login
+              description: Go to the login page
+            - action: fill
+              selector: '#username'
+              value: testuser
+              description: Enter valid username
+            - action: fill
+              selector: '#password'
+              value: wrongpassword
+              description: Enter invalid password
+            - action: click
+              selector: '#login-button'
+              description: Click the login button
+            - action: assert_element_visible
+              selector: '.error-message'
+              description: Verify error message is displayed</code></pre>
+            </div>
+
+            <!-- 5.2 tests/functional/registration_test_plan.json -->
+            <div id="section-testsfunctionalregistration_test_planjson" class="content-section">
+              <h3 id="testsfunctionalregistration_test_planjson">5.2. <code>tests/functional/registration_test_plan.json</code></h3>
+              <pre><code class="language-json">{
+  "test_plan": {
+    "name": "User Registration Tests",
+    "description": "Tests for the user registration feature",
+    "test_suites": [
+      {
+        "name": "New User Registration",
+        "description": "Test new user registration scenarios",
+        "test_cases": [
+          {
+            "name": "Successful Registration",
+            "description": "Verify a new user can register successfully",
+            "steps": [
+              {
+                "action": "navigate",
+                "target": "/register",
+                "description": "Go to the registration page"
+              },
+              {
+                "action": "fill",
+                "selector": "#new-username",
+                "value": "newuser",
+                "description": "Enter desired username"
+              },
+              {
+                "action": "fill",
+                "selector": "#new-password",
+                "value": "securepassword",
+                "description": "Enter desired password"
+              },
+              {
+                "action": "click",
+                "selector": "#register-button",
+                "description": "Click the register button"
+              },
+              {
+                "action": "assert_url",
+                "expected": "/registration-success",
+                "description": "Verify redirection to success page"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}</code></pre>
+            </div>
+
+            <!-- 5.3 config/config.yaml -->
+            <div id="section-configconfigyaml" class="content-section">
+              <h3 id="configconfigyaml">5.3. <code>config/config.yaml</code></h3>
+              <pre><code class="language-yaml">environments:
+  browser:
+    type: puppeteer
+    config:
+      baseUrl: http://localhost:3000 # Replace with your application’s base URL
+      headless: true # Set to false to see the browser
+      defaultTimeout: 10000 # Milliseconds
+
+models:
+  reasoning:
+    provider: local_api # Example: using a local API endpoint
+    type: llm
+    config:
+      endpoint: http://localhost:8000/v1
+      model_name: my-local-llm
+
+vision:
+    provider: local_ollama # Example: using Ollama
+    type: vision
+    config:
+      model_name: llava:7b
+      endpoint: http://localhost:11434/api/generate
+
+reporting:
+  - type: json
+    config:
+      outputDir: ./reports</code></pre>
+            </div>
+
+            <!-- 5.4 requirements.txt -->
+            <div id="section-requirementstxt" class="content-section">
+              <h3 id="requirementstxt">5.4. <code>requirements.txt</code></h3>
+              <pre><code class="language-text">mmat
+
+# Add any other dependencies your project needs</code></pre>
+            </div>
+          </div>
+
+          <!-- 6. Setting up Local Models with LM Studio -->
+          <div id="section-setting-up-local-models-with-lm-studio" class="content-section">
+            <h2 id="setting-up-local-models-with-lm-studio">6. Setting up Local Models with LM Studio</h2>
+            <p>
+              MMAT can utilize local Language Models (LLMs) and Vision Models (VMs) for tasks like test plan generation and analysis. LM Studio
+              is a popular desktop application that allows you to discover, download, and run local LLMs.
+            </p>
+            <p>Here’s how to set up LM Studio and configure MMAT to use models served by it:</p>
+            <ol>
+              <li>
+                <p><strong>Download and Install LM Studio:</strong></p>
+                <ul>
+                  <li>Go to the <a href="https://lmstudio.ai/">LM Studio website</a> and download the appropriate version for your OS (Windows, macOS, Linux).</li>
+                  <li>Install LM Studio following the on-screen instructions.</li>
+                </ul>
+              </li>
+              <li>
+                <p><strong>Download Models in LM Studio:</strong></p>
+                <ul>
+                  <li>Open LM Studio.</li>
+                  <li>Use the search bar to find models. For MMAT, you’ll likely need a reasoning model (general-purpose LLM) and potentially a multimodal/vision model (e.g., LLaVA) if you plan to use vision-based features.</li>
+                  <li>Click “Download” next to the models you want. Choose a suitable size/quantization (e.g., Q4_K_M for a balance of speed vs. quality).</li>
+                </ul>
+              </li>
+              <li>
+                <p><strong>Serve Models in LM Studio:</strong></p>
+                <ul>
+                  <li>Go to the “Local Inference Server” tab (usually the third icon from the top). Select the model to serve from the dropdown.</li>
+                  <li>Click “Start Server.” LM Studio will display an API endpoint (e.g., <code>http://localhost:1234</code>).</li>
+                </ul>
+              </li>
+              <li>
+                <p><strong>Configure MMAT’s <code>config.yaml</code>:</strong></p>
+                <ul>
+                  <li>Open your project’s <code>config/config.yaml</code>.</li>
+                  <li>Modify the <code>models</code> section to point to LM Studio’s endpoint:</li>
+                </ul>
+                <pre><code class="language-yaml">environments:
+  browser:
+    type: puppeteer
+    config:
+      baseUrl: http://localhost:3000 # Replace with your application’s base URL
+      headless: true # Set to false to see the browser
+      defaultTimeout: 10000 # Milliseconds
+
+models:
+  reasoning:
+    provider: lm_studio # Or a custom provider name
+    type: llm
+    config:
+      endpoint: http://localhost:1234/v1 # LM Studio API endpoint
+      model_name: your-downloaded-llm-name # Exact name of the LLM you are serving
+
+vision:
+    provider: lm_studio
+    type: vision # For multimodal/vision models
+    config:
+      endpoint: http://localhost:1234/v1 # LM Studio API endpoint
+      model_name: your-downloaded-vision-model-name # Exact name of the vision model
+
+reporting:
+  - type: json
+    config:
+      outputDir: ./reports</code></pre>
+                <p>
+                  *Ensure <code>endpoint</code> matches what LM Studio shows.* The <code>model_name</code> must exactly match the model name in LM Studio. MMAT’s LM Studio provider will use this to send requests for inference. :contentReference[oaicite:2]{index=2}
+                </p>
+              </li>
+              <li>
+                <p><strong>Run MMAT:</strong></p>
+                <ul>
+                  <li>With LM Studio running and serving the required models, you can now run MMAT commands (e.g., <code>mmat run</code>, <code>mmat build</code>) that use those local models.</li>
+                </ul>
+              </li>
+            </ol>
+          </div>
+
+          <!-- 7. Understanding Graphs in MMAT -->
+          <div id="section-understanding-graphs-in-mmat" class="content-section">
+            <h2 id="understanding-graphs-in-mmat">7. Understanding Graphs in MMAT</h2>
+            <p>
+              The <code>graph/</code> module in MMAT is planned to handle internal representations and interactions related to test flows,
+              dependencies, or other structural aspects of the testing process. This is likely an internal component used for analysis,
+              visualization, or orchestration, rather than requiring a separate graph database or visualization tool for basic usage.
+            </p>
+            <p>
+              Detailed setup for visualizing or interacting with these internal graph structures will be provided in future documentation. For
+              standard test execution, you typically don’t need any extra graph setup beyond installing and configuring MMAT as described above.
+            </p>
+          </div>
+
+          <!-- 8. Usage (Planned) -->
+          <div id="section-usage-planned" class="content-section">
+            <h2 id="usage-planned">8. Usage (Planned)</h2>
+            <p>MMAT provides a command-line interface (CLI) to interact with the framework, primarily through the <code>run</code> and <code>build</code> commands.</p>
+
+            <!-- 8.1 mmat run -->
+            <div id="section-mmat-run" class="content-section">
+              <h3>8.1. <a id="mmat-run"></a><code>mmat run</code></h3>
+              <p>The <code>mmat run</code> command is used to execute a specified test plan. When you run a test plan, MMAT will:</p>
+              <ol>
+                <li>Load configuration from the specified <code>--config</code> file.</li>
+                <li>Load the test plan (given by <code>&lt;plan_identifier&gt;</code> and <code>--plan-type</code>).</li>
+                <li>Initialize environments and models as defined in the configuration.</li>
+                <li>Iterate through test suites and test cases in the test plan.</li>
+                <li>Execute each test step sequentially using the configured environment (e.g., a browser).</li>
+                <li>Perform validations and assertions as defined.</li>
+                <li>Collect results and generate reports using the configured reporters.</li>
+              </ol>
+              <p><strong>Syntax:</strong></p>
+              <pre><code class="language-bash">mmat run &lt;plan_identifier&gt; --plan-type &lt;type&gt; --config &lt;config_file&gt; [options]</code></pre>
+              <ul>
+                <li><code>&lt;plan_identifier&gt;</code>: Path to your test plan file (e.g., <code>tests/functional/login_test_plan.yaml</code>).</li>
+                <li><code>--plan-type &lt;type&gt;</code>: Format of the test plan (e.g., <code>yaml</code>, <code>json</code>).</li>
+                <li><code>--config &lt;config_file&gt;</code>: Path to your MMAT configuration file (e.g., <code>config/config.yaml</code>).</li>
+                <li><code>[options]</code>: Additional options (e.g., filtering test cases, verbosity).</li>
+              </ul>
+              <p><strong>Example:</strong></p>
+              <pre><code class="language-bash">mmat run tests/functional/login_test_plan.yaml --plan-type yaml --config config/config.yaml</code></pre>
+              <p>This will execute the test plan in <code>tests/functional/login_test_plan.yaml</code> with settings from <code>config/config.yaml</code>.</p>
+            </div>
+
+            <!-- 8.2 mmat build -->
+            <div id="section-mmat-build" class="content-section">
+              <h3>8.2. <a id="mmat-build"></a><code>mmat build</code></h3>
+              <p>
+                The <code>mmat build</code> command is intended for generating or processing test plans—often using the configured models. Its primary
+                roles may include:
+              </p>
+              <ul>
+                <li>Generating a structured test plan (YAML/JSON) from a less-structured input (e.g., a functional description) using a reasoning model.</li>
+                <li>Updating or expanding an existing test plan based on new information or analysis.</li>
+                <li>Performing static analysis on a test plan.</li>
+              </ul>
+              <p><strong>Syntax:</strong></p>
+              <pre><code class="language-bash">mmat build &lt;input_identifier&gt; --input-type &lt;type&gt; --output &lt;output_path&gt; --config &lt;config_file&gt; [options]</code></pre>
+              <ul>
+                <li><code>&lt;input_identifier&gt;</code>: Source for building the plan (e.g., a functional description file, URL, etc.).</li>
+                <li><code>--input-type &lt;type&gt;</code>: Format of the input (e.g., <code>markdown</code>, <code>url</code>, <code>json</code>).</li>
+                <li><code>--output &lt;output_path&gt;</code>: Path to save the generated/processed test plan (e.g., <code>tests/generated/auth_tests.yaml</code>).</li>
+                <li><code>--config &lt;config_file&gt;</code>: Path to your MMAT configuration file (for models, environment, etc.).</li>
+                <li><code>[options]</code>: Additional options controlling generation.</li>
+              </ul>
+              <p><strong>Example:</strong></p>
+              <pre><code class="language-bash">mmat build functional_description.md --input-type markdown --output tests/generated/auth_tests.yaml --config config/config.yaml</code></pre>
+              <p>
+                This would generate a YAML test plan at <code>tests/generated/auth_tests.yaml</code> based on <code>functional_description.md</code>,
+                using models defined in <code>config/config.yaml</code>. :contentReference[oaicite:3]{index=3}
+              </p>
+            </div>
+
+            <!-- 8.3 mmat export -->
+            <div id="section-mmat-export" class="content-section">
+              <h3>8.3. <a id="mmat-export"></a><code>mmat export</code></h3>
+              <p>
+                The <code>mmat export</code> command converts an existing MMAT test plan into executable code (e.g., Playwright Python). This lets
+                you run tests outside MMAT or use the generated script as a starting point.
+              </p>
+              <p>When you run <code>mmat export</code>, MMAT will:</p>
+              <ol>
+                <li>Load the specified test plan.</li>
+                <li>Translate test steps into the syntax of the target format (e.g., Playwright Python API calls).</li>
+                <li>Save the generated code to the specified output file.</li>
+              </ol>
+              <p><strong>Syntax:</strong></p>
+              <pre><code class="language-bash">mmat export &lt;test_plan_path&gt; --output &lt;output_path&gt; [--force]</code></pre>
+              <ul>
+                <li><code>&lt;test_plan_path&gt;</code>: Path to the MMAT test plan (e.g., <code>tests/functional/login_test_plan.yaml</code>).</li>
+                <li><code>--output &lt;output_path&gt;</code>: Path where generated code should be saved (e.g., <code>exported_tests/login_test.py</code>).</li>
+                <li><code>--force</code> (Optional): Overwrite the output file if it exists.</li>
+              </ul>
+              <p><strong>Example:</strong></p>
+              <pre><code class="language-bash">mmat export tests/functional/login_test_plan.yaml --output exported_tests/login_test.py</code></pre>
+              <p>
+                This will export <code>tests/functional/login_test_plan.yaml</code> to a Playwright Python file named <code>login_test.py</code>
+                in <code>exported_tests</code>.
+              </p>
+              <p><strong>Example of Generated Playwright Code (<code>exported_tests/login_test.py</code>):</strong></p>
+              <pre><code class="language-python">import pytest
+from playwright.sync_api import Page, sync_playwright
+
+# Test Suite: Standard Login
+# Description: Test standard user login scenarios
+
+# Test Case: Successful Login with Valid Credentials
+# Description: Verify a user can log in successfully
+def test_successful_login(page: Page):
+    page.goto("/login")
+    page.fill('#username', 'testuser')
+    page.fill('#password', 'password123')
+    page.click('#login-button')
+    # Verify redirection to dashboard
+    assert page.url.endswith('/dashboard')
+
+# Test Case: Failed Login with Invalid Password
+# Description: Verify login fails with incorrect password
+def test_failed_login_invalid_password(page: Page):
+    page.goto("/login")
+    page.fill('#username', 'testuser')
+    page.fill('#password', 'wrongpassword')
+    page.click('#login-button')
+    # Verify error message is displayed
+    assert page.is_visible('.error-message')</code></pre>
+            </div>
+          </div>
+
+          <!-- 9. Creating Tests -->
+          <div id="section-creating-tests" class="content-section">
+            <h2 id="creating-tests">9. Creating Tests</h2>
+            <p>
+              MMAT uses a model-based approach to generate test plans (suites and cases) from functional descriptions or structured data. You can
+              also define tests manually.
+            </p>
+            <p>
+              A test plan is typically defined in a structured format (YAML or JSON). It consists of one or more test suites; each suite contains
+              multiple test cases. Each test case is composed of a sequence of test steps.
+            </p>
+            <p>Here’s a conceptual example of a test plan:</p>
+            <pre><code class="language-yaml">test_plan:
+  name: User Authentication Tests
+  description: Tests for user login and registration features
+  test_suites:
+    - name: Login Functionality
+      description: Tests related to user login
+      test_cases:
+        - name: Successful Login
+          description: Verify a user can log in with valid credentials
+          steps:
+            - action: navigate
+              target: /login
+              description: Go to the login page
+            - action: fill
+              selector: '#username'
+              value: testuser
+              description: Enter username
+            - action: fill
+              selector: '#password'
+              value: password123
+              description: Enter password
+            - action: click
+              selector: '#login-button'
+              description: Click the login button
+            - action: assert_url
+              expected: /dashboard
+              description: Verify redirection to dashboard
+    - name: Registration Functionality
+      description: Tests related to user registration
+      test_cases:
+        # …more test cases and steps</code></pre>
+            <p>
+              The specific <code>action</code> types available depend on your configured environment and any plugins you’ve added to MMAT.
+            </p>
+          </div>
+
+          <!-- 10. Contributing (Planned) -->
+          <div id="section-contributing-planned" class="content-section">
+            <h2 id="contributing-planned">10. Contributing (Planned)</h2>
+            <p>
+              Contributions are welcome! Please see the <code>CONTRIBUTING.md</code> (to be created) for details on how to propose changes, run tests,
+              and submit pull requests.
+            </p>
+          </div>
+
+          <!-- 11. License -->
+          <div id="section-license" class="content-section">
+            <h2 id="license">11. License</h2>
+            <p>
+              This project is licensed under the MIT License—see the <a href="LICENSE">LICENSE</a> file for details.
+            </p>
+          </div>
+
+          <!-- 12. Acknowledgments -->
+          <div id="section-acknowledgments" class="content-section">
+            <h2 id="acknowledgments">12. Acknowledgments</h2>
+            <ul>
+              <li>Mention any libraries, tools, or resources that were helpful.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ----------------------------------------
+       JavaScript to toggle content sections
+       ---------------------------------------- -->
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const sidebarLinks = document.querySelectorAll(".sidebar a");
+      const contentSections = document.querySelectorAll(".content-section");
+      const overviewSection = document.getElementById("section-overview");
+
+      // Hide all sections
+      const hideAllSections = () => {
+        contentSections.forEach((section) => {
+          section.classList.remove("active");
+        });
+      };
+
+      // Remove “active” from links
+      const removeActiveClassFromLinks = () => {
+        sidebarLinks.forEach((link) => {
+          link.classList.remove("active");
+        });
+      };
+
+      // Show overview by default
+      hideAllSections();
+      if (overviewSection) {
+        overviewSection.classList.add("active");
+        const overviewLink = document.querySelector('.sidebar a[href="#section-overview"]');
+        if (overviewLink) {
+          overviewLink.classList.add("active");
+        }
+      }
+
+      // Add click listeners to sidebar links
+      sidebarLinks.forEach((link) => {
+        link.addEventListener("click", (event) => {
+          event.preventDefault();
+          const targetId = link.getAttribute("href").substring(1);
+          const targetSection = document.getElementById(targetId);
+          if (targetSection) {
+            hideAllSections();
+            targetSection.classList.add("active");
+            removeActiveClassFromLinks();
+            link.classList.add("active");
+          }
+        });
+      });
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,28 @@
+# Example Test Plan
+# This is a sample test plan demonstrating the structure and available steps.
+
+name: Example Web Test
+description: A simple test plan to navigate and interact with a website.
+
+setup:
+  # Optional setup steps (e.g., launch application, prepare data)
+  - type: navigate
+    description: Navigate to the example website
+    url: https://example.com
+
+steps:
+  # List of test steps to be executed sequentially
+  - type: click
+    description: Click on the 'More information...' link
+    selector: 'p > a' # CSS selector for the link
+
+  # Add more steps as needed
+  # - type: fill
+  #   description: Fill out a form field
+  #   selector: '#username'
+  #   value: 'testuser'
+
+teardown:
+  # Optional teardown steps (e.g., close application, clean up data)
+  # Currently no specific teardown steps implemented in the framework
+  pass # Placeholder

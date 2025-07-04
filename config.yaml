@@ -1,0 +1,93 @@
+# MMAT (Model-based Multimodal Automation Testing) Configuration File
+
+# Environment Configuration
+# Defines the test environment where tests will be executed.
+# 'type' specifies the environment plugin to use (e.g., 'browser', 'mobile', 'api').
+# 'parameters' are specific configuration options for the chosen environment type.
+environment:
+  type: browser # Example: Using a browser environment
+  parameters:
+    browser_type: chromium # Example: Use Chromium browser
+    headless: true # Example: Run browser in headless mode
+    # Add other environment-specific parameters here
+
+# Plugin Configuration
+# Defines the plugins to be loaded by the framework.
+# Each entry under 'plugins' is a key-value pair:
+# - Key: A unique name for the plugin instance (used to reference it).
+# - Value: A dictionary specifying the plugin details.
+#   - 'module': The Python module path where the plugin class is located.
+#   - 'class': The name of the plugin class within the module.
+#   - 'parameters': Optional parameters to pass to the plugin's constructor.
+plugins:
+  # Example Environment Plugin (if not built-in)
+  # browser:
+  #   module: mmat.plugins.environments.browser_plugin # Example module path
+  #   class: BrowserEnvironmentPlugin
+  #   parameters:
+  #     driver_path: /path/to/webdriver # Example parameter
+
+  # Example Test Step Plugin
+  # click_element:
+  #   module: mmat.plugins.steps.web_actions # Example module path
+  #   class: ClickElementStep
+  #   parameters: {} # No specific parameters needed for this example step
+
+  # Example Reporter Plugin
+  # json_reporter:
+  #   module: mmat.plugins.reporters.json_reporter # Example module path
+  #   class: JsonReporter
+  #   parameters:
+  #     output_file: reports/report.json # Example parameter
+
+# Test Suite Configuration
+# Defines the structure of the test suite, including test cases and steps.
+test_suite:
+  name: Example Automation Suite
+  description: A sample test suite for demonstrating MMAT capabilities
+  test_cases:
+    - name: Example Login Test
+      description: Tests the user login functionality
+      steps:
+        - name: Navigate to Login Page
+          plugin_type: browser # Refers to a loaded environment or step plugin
+          action: navigate # Action to perform within the plugin
+          parameters:
+            url: http://example.com/login # Parameters for the action
+
+        - name: Enter Username
+          plugin_type: browser # Or a specific 'input' step plugin
+          action: type # Action to perform
+          parameters:
+            selector: "#username" # CSS selector for the input field
+            value: testuser # Value to type
+
+        - name: Enter Password
+          plugin_type: browser # Or a specific 'input' step plugin
+          action: type # Action to perform
+          parameters:
+            selector: "#password"
+            value: password123
+
+        - name: Click Login Button
+          plugin_type: browser # Or a specific 'click' step plugin
+          action: click # Action to perform
+          parameters:
+            selector: "#login-button"
+
+        # Add more steps as needed for the test case
+
+    # Add more test cases here
+
+# Reporter Configuration
+# Defines the reporters to be used for generating test reports.
+# Each entry is a dictionary specifying the reporter details.
+# - 'type': The type of reporter plugin to use (must match a loaded plugin name).
+# - 'parameters': Optional parameters for the reporter plugin.
+reporters:
+  - type: json_reporter # Refers to a loaded reporter plugin
+    parameters:
+      output_file: reports/mmat_report.json # Example: Output report to this file
+      # Add other reporter-specific parameters here
+
+  # Add more reporters here (e.g., html_reporter, console_reporter)
