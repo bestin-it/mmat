@@ -5,6 +5,7 @@ import yaml
 import json
 
 from mmat.driver.playwright_driver import PlaywrightDriver
+from mmat.description_generator import DescriptionGenerator # Import DescriptionGenerator
 from mmat.test_runner.test_runner import TestRunner
 from mmat.config.config_manager import ConfigManager # Import ConfigManager
 from mmat.plan_builder.plan_builder import PlanBuilder # Import PlanBuilder
@@ -129,13 +130,55 @@ class MMAT:
 
         elif args.command == 'describe':
             print("[MMAT] Generating description...")
-            # Placeholder for describe logic
-            pass
+            test_plan_path = args.test_plan_path # Assuming the CLI argument is named test_plan_path
+            output_path = args.output # Assuming the CLI argument is named output
+            force = args.force # Assuming the CLI argument is named force
 
-        elif args.command == 'describe':
-            print("[MMAT] Generating description...")
-            # Placeholder for describe logic
-            pass
+            if not test_plan_path:
+                print("[MMAT] Error: Test plan path is required for 'describe' command.")
+                return
+
+            if output_path and os.path.exists(output_path) and not force:
+                print(f"[MMAT] Error: Output file '{output_path}' already exists. Use --force to overwrite.")
+                return
+
+            # Ensure reasoning model is initialized
+            if not self.reasoning_model:
+                 print("[MMAT] Error: Reasoning model is not configured or initialized. Cannot generate description.")
+                 return
+
+            try:
+                # Load the test plan
+                # Assuming PlanBuilder.build_from_file is implemented and works
+                test_suite = self.plan_builder.build_from_file(test_plan_path)
+
+                # Instantiate DescriptionGenerator and generate description
+                generator = DescriptionGenerator(self.reasoning_model)
+                description = generator.generate_description(test_suite)
+
+                if output_path:
+                    # Save description to file
+                    output_dir = os.path.dirname(output_path)
+                    if output_dir and not os.path.exists(output_dir):
+                        os.makedirs(output_dir)
+
+                    with open(output_path, 'w', encoding='utf-8') as f:
+                        f.write(description)
+                    print(f"[MMAT] Functional description successfully generated and saved to {output_path}")
+                else:
+                    # Print description to stdout
+                    print("[MMAT] Generated Functional Description:")
+                    print(description)
+
+            except FileNotFoundError:
+                print(f"[MMAT] Error: Test plan file not found at {test_plan_path}")
+            except ValueError as e:
+                print(f"[MMAT] Error loading or processing test plan: {e}")
+            except Exception as e:
+                print(f"[MMAT] An error occurred during description generation: {e}")
+                import traceback
+                traceback.print_exc() # Print traceback for debugging
+
 
         elif args.command == 'feedback':
             print("[MMAT] Entering feedback mode...")

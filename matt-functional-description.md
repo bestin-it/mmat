@@ -271,24 +271,45 @@ mmat export --test ./tests/login.json --to playwright --lang python --output ./t
 #### Command: `describe`
 
 **Description:**
-Creates or updates human-readable test description from JSON.
+Converts an MMAT functional test plan (YAML or JSON) into a human-readable functional description. Requires a configured reasoning model (LLM).
 
 **Example:**
 
 ```bash
-mmat describe --test ./tests/login.json --output ./tests/login.desc
+mmat describe --test ./tests/functional/login_test_plan.yaml --output ./functional_descriptions/login_description.md
+```
+Or print to stdout:
+```bash
+mmat describe --test ./tests/functional/login_test_plan.yaml
 ```
 
 **Parameters:**
 
-* `--test` – JSON file
-* `--output` – description file
+* `--test` – Path to the MMAT test plan file (YAML or JSON).
+* `--output` – Optional output path for the generated functional description file (e.g., Markdown). If not provided, prints to stdout.
+* `--force` – Overwrite output file if it already exists.
 
-**Sample result:**
+**Sample result (saving to file):**
 
 ```
-[MMAT] Generating test description ./tests/login.json
-[MMAT] Description saved in ./tests/login.desc
+[MMAT] Generating description...
+[DescriptionGenerator] Sending prompt to reasoning model...
+[DescriptionGenerator] Received response from reasoning model.
+[MMAT] Functional description successfully generated and saved to ./functional_descriptions/login_description.md
+```
+
+**Sample result (printing to stdout):**
+
+```
+[MMAT] Generating description...
+[DescriptionGenerator] Sending prompt to reasoning model...
+[DescriptionGenerator] Received response from reasoning model.
+[MMAT] Generated Functional Description:
+# User Login Feature
+
+## Description
+This feature allows users to log in...
+... (generated description content)
 ```
 
 #### Command: `feedback`
@@ -456,4 +477,3 @@ Last modified: 2025-05-31 12:34
 * From description: `generate` → `run` → `export`
 * From E2E JSON test: `run` → `export` → `describe`
 * From Playwright code: `show` → `describe` → feedback/edit
-

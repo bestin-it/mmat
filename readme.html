@@ -740,6 +740,40 @@ def test_failed_login_invalid_password(page: Page):
                 <code>tests/functional/imported_user_login_plan.yaml</code>.
               </p>
             </div>
+
+            <!-- 5.5 mmat describe -->
+            <div id="section-mmat-describe" class="content-section">
+              <h3>5.5. <a id="mmat-describe"></a><code>mmat describe</code></h3>
+              <p>
+                The <code>mmat describe</code> command converts an MMAT functional test plan (YAML or JSON) into a human-readable functional description. This process utilizes a configured reasoning model (LLM) to interpret the structured test steps and generate a coherent description of the test's purpose and flow.
+              </p>
+              <p>When you run <code>mmat describe</code>, MMAT will:</p>
+              <ol>
+                <li>Load the specified test plan file.</li>
+                <li>Format the test plan data for the reasoning model.</li>
+                <li>Send the formatted data as a prompt to the configured LLM.</li>
+                <li>Receive the generated description from the LLM.</li>
+                <li>Output the resulting description to a file or standard output.</li>
+              </ol>
+              <p><strong>Syntax:</strong></p>
+              <pre><code class="language-bash">mmat describe <test_plan_path> [--output <output_path>] [--force]</code></pre>
+              <ul>
+                <li><code><test_plan_path></code>: Path to the MMAT test plan file (YAML or JSON).</li>
+                <li><code>--output <output_path></code> (Optional): Path to save the generated functional description file (e.g., Markdown). If not provided, prints to standard output.</li>
+                <li><code>--force</code> (Optional): Overwrite the output file if it exists.</li>
+              </ul>
+              <p><strong>Example:</strong></p>
+              <pre><code class="language-bash">mmat describe tests/functional/login_test_plan.yaml --output functional_descriptions/login_description.md</code></pre>
+              <p>
+                This will load the test plan from <code>tests/functional/login_test_plan.yaml</code> and save the generated functional description to
+                <code>functional_descriptions/login_description.md</code>.
+              </p>
+              <p><strong>Example (printing to stdout):</strong></p>
+              <pre><code class="language-bash">mmat describe tests/functional/login_test_plan.yaml</code></pre>
+              <p>
+                This will load the test plan and print the generated functional description directly to your terminal.
+              </p>
+            </div>
           </div>
 
           <!-- 6. Contributing (Planned) -->
