@@ -35,3 +35,13 @@ class TestCase:
 
     def __repr__(self) -> str:
         return f"TestCase(name='{self.name}', description='{self.description}', steps={self.steps}, status='{self.status}')"
+
+    def to_dict(self) -> dict:
+        """
+        Converts the TestCase object to a dictionary.
+        """
+        return {
+            "name": self.name,
+            "description": self.description,
+            "steps": [step.to_dict() for step in self.steps] # Assuming TestStep has a to_dict method
+        }
