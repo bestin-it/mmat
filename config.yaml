@@ -40,6 +40,25 @@ plugins:
   #   parameters:
   #     output_file: reports/report.json # Example parameter
 
+# Model Configuration
+# Defines the LLM models to be used by the framework.
+# Each entry under 'models' is a key-value pair:
+# - Key: A unique name for the model instance (e.g., 'vision', 'reasoning').
+# - Value: A dictionary specifying the model details.
+#   - 'type': The type of model (e.g., 'vision_model', 'reasoning_model').
+#   - 'parameters': Configuration options for the model.
+models:
+  vision:
+    type: vision_model
+    parameters:
+      api_url: http://172.29.32.1:1234/v1
+      model_name: mistralai/mistral-small-3.2
+  reasoning:
+    type: reasoning_model
+    parameters:
+      api_url: http://172.29.32.1:1234/v1
+      model_name: mistralai/magistral-small
+
 # Test Suite Configuration
 # Defines the structure of the test suite, including test cases and steps.
 test_suite:
