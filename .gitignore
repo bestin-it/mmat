@@ -1,0 +1,21 @@
+# Ignore build directory
+build/
+
+# Ignore test-mmat project directory
+test-mmat/
+
+# Ignore Python bytecode files
+*.pyc
+__pycache__/
+
+# Ignore editor/IDE specific files
+.vscode/
+.idea/
+
+# Ignore environment files
+.env
+venv/
+env/
+
+# Ignore test reports
+reports/
