@@ -10,16 +10,17 @@ Based on the `README.md` and `matt-functional-description.md` files, here is an 
 *   Installation process via pip and setting up the `mmat` alias on Windows.
 *   Project initialization using the `mmat init` command.
 *   Concepts and file structures for Functional Descriptions (Markdown), Functional Test Plans (YAML/JSON), and E2E Tests (Playwright Python).
-*   Configuration management via `config.yaml` for environments, models, and reporting.
+*   Configuration management via `config.yaml` for environments, models, and reporting. **LLM models configured in main config.yaml.**
 *   Basic Playwright integration for browser automation and DOM reading.
 *   HTML structure analysis capabilities.
 *   A JSON reporter for test results.
-*   The command-line interface (CLI) with commands like `run`, `build`, `export`, `import-e2e`, `describe`, `feedback`, `list`, and `show` appears to be structured, although the full functionality of some commands relies on planned features.
+*   The command-line interface (CLI) with commands like `run`, `generate`, `export`, `import-e2e`, `describe`, `feedback`, `list`, and `show` appears to be structured, although the full functionality of some commands relies on planned features. (Note: `build` command was corrected to `generate`).
+*   **Integrated local API reasoning model for test plan generation (`mmat generate`).**
 
 **Planned/Undeveloped Features:**
 
 *   Advanced model-based capabilities, including:
-    *   Full test plan generation from descriptions using AI models (`mmat build`).
+    *   Full test plan generation from descriptions using AI models (`mmat build`). - **DONE** (Implemented using `mmat generate` with reasoning model)
     *   Visual analysis of screenshots via multimodal models.
     *   Building and updating a local knowledge graph of elements and interactions.
     *   Autonomous exploration and knowledge gathering during test execution.

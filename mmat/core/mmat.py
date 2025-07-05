@@ -93,12 +93,21 @@ class MMAT:
             try:
                 test_plan = self.plan_builder.generate_plan_from_description(description)
                 if test_plan:
-                    self.plan_builder.save_plan_to_json(test_plan, output_path)
+                    # Save the generated test plan to the output file (as YAML)
+                    output_dir = os.path.dirname(output_path)
+                    if output_dir and not os.path.exists(output_dir):
+                        os.makedirs(output_dir)
+
+                    with open(output_path, 'w') as f:
+                        yaml.dump(test_plan, f, indent=2)
+
                     print(f"[MMAT] Test plan successfully generated and saved to {output_path}")
                 else:
                     print("[MMAT] Failed to generate test plan.")
             except Exception as e:
                 print(f"[MMAT] An error occurred during test generation: {e}")
+                import traceback
+                traceback.print_exc() # Print traceback for debugging
 
 
         elif args.command == 'run':

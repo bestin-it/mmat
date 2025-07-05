@@ -1,6 +1,7 @@
 # MMAT Local API Reasoning Model Implementation
 
 import requests
+import json # Import the json module
 from typing import Any, Dict, List
 
 from .reasoning_model import ReasoningModel
