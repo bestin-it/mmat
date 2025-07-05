@@ -10,6 +10,7 @@ from mmat.test_runner.test_runner import TestRunner
 from mmat.config.config_manager import ConfigManager # Import ConfigManager
 from mmat.plan_builder.plan_builder import PlanBuilder # Import PlanBuilder
 from mmat.models.local_api_reasoning_model import LocalApiReasoningModel # Import the concrete reasoning model
+from mmat.models.local_api_vision_model import LocalApiVisionModel # Import the concrete vision model
 
 class MMAT:
     """
@@ -35,9 +36,11 @@ class MMAT:
         self.test_runner = TestRunner(self.playwright_driver, self.config_manager) # Initialize Test Runner with driver and config_manager
 
         # Initialize models based on configuration
+        # Initialize models based on configuration
         self.reasoning_model = None
         self.vision_model = None
         models_config = self.config.get('models', {})
+
         if 'reasoning' in models_config:
             reasoning_config = models_config['reasoning']
             model_type = reasoning_config.get('type')
@@ -51,6 +54,21 @@ class MMAT:
                      print(f"[MMAT] An unexpected error occurred initializing reasoning model: {e}")
             else:
                 print(f"[MMAT] Warning: Unknown reasoning model type '{model_type}' specified in config.")
+
+        if 'vision' in models_config:
+            vision_config = models_config['vision']
+            model_type = vision_config.get('type')
+            model_params = vision_config.get('parameters', {})
+            if model_type == 'vision_model': # Assuming 'vision_model' type maps to LocalApiVisionModel
+                 try:
+                     self.vision_model = LocalApiVisionModel(**model_params)
+                 except TypeError as e:
+                     print(f"[MMAT] Error initializing vision model with parameters {model_params}: {e}")
+                 except Exception as e:
+                     print(f"[MMAT] An unexpected error occurred initializing vision model: {e}")
+            else:
+                print(f"[MMAT] Warning: Unknown vision model type '{model_type}' specified in config.")
+
 
         # Initialize Plan Builder with config_manager and reasoning model
         self.plan_builder = PlanBuilder(self.config_manager, self.reasoning_model)
