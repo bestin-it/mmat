@@ -61,6 +61,7 @@ mmat/test_plans/__init__.py
 mmat/test_runner/__init__.py
 mmat/test_runner/test_runner.py
 mmat/test_steps/__init__.py
+mmat/test_steps/assertion_steps.py
 mmat/test_steps/base_step.py
 mmat/test_steps/web_steps.py
 mmat/tests/__init__.py

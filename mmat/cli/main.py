@@ -89,9 +89,21 @@ def main():
         help="Overwrite output file if it already exists",
     )
 
-    # Add other potential commands here (e.g., 'validate', 'list-plugins')
-    # validate_parser = subparsers.add_parser("validate", help="Validate a test plan")
-    # validate_parser.add_argument("test_plan_path", help="Path to the test plan file (YAML or JSON)")
+    # Feedback command
+    feedback_parser = subparsers.add_parser("feedback", help="Provide feedback on a test run or specific test step")
+    feedback_parser.add_argument(
+        "test",
+        help="Path to the test plan file (YAML or JSON) for which to provide feedback",
+    )
+    feedback_parser.add_argument(
+        "--step",
+        type=int,
+        help="Optional: The specific step number (1-based index) to provide feedback for. If not provided, feedback applies to the entire test.",
+    )
+    feedback_parser.add_argument(
+        "--report",
+        help="Optional: Path to the test report file (e.g., JSON) to use for context.",
+    )
 
     args = parser.parse_args()
 

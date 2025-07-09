@@ -26,7 +26,7 @@ Based on the `README.md` and `matt-functional-description.md` files, here is an 
     *   Autonomous exploration and knowledge gathering during test execution.
     *   Post-test knowledge analysis and reasoning.
     *   Generating comprehensive test summaries and reports (beyond basic JSON).
-    *   The full feedback cycle functionality (`mmat feedback`) for test improvement based on execution results and user input, especially for visual steps.
+*   The full feedback cycle functionality (`mmat feedback`) for test improvement based on execution results and user input, especially for visual steps. - **DONE**
     *   Automatic synchronization between descriptions and tests after changes.
     *   Visual element identification using bounding boxes, OCR, and textual descriptions when DOM information is unavailable.
 *   A separation layer for easily swapping the graph backend.

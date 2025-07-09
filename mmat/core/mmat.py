@@ -123,9 +123,122 @@ class MMAT:
         self.test_runner = TestRunner(self.playwright_driver, self.config_manager, self.screenshot_analyzer)
 
         # Placeholder for other module instances
-        self.html_analyzer = None # Initialize HTML Analyzer
-        self.reporting = None # Initialize Reporting
-        self.feedback_handler = None # Initialize Feedback Handler
+from mmat.orchestration.feedback_handler import FeedbackHandler # Import FeedbackHandler
+
+class MMAT:
+    """
+    Core MMAT (Multi Modal AI Tester) framework class.
+    Manages the overall test execution, generation, and feedback loop.
+    """
+    def __init__(self, config_path="config/config.yaml"):
+        """
+        Initializes the MMAT framework.
+
+        Args:
+            config_path (str): Path to the configuration file.
+        """
+        self.config_manager = ConfigManager(config_path) # Use ConfigManager
+        self.config = self.config_manager.config # Load config
+
+        # Initialize other modules (Graph API, Playwright Driver, Models, Analyzers, etc.)
+        # based on the loaded configuration.
+        print(f"[MMAT] Initialized with config from {config_path}")
+
+        # Initialize models based on configuration (must happen before TestRunner and ScreenshotAnalyzer)
+        self.reasoning_model = None
+        self.vision_model = None
+        models_config = self.config.get('models', {})
+
+        if 'reasoning' in models_config:
+            reasoning_config = models_config['reasoning']
+            model_type = reasoning_config.get('type')
+            # Parameters are expected in a nested 'config' dictionary
+            model_params = reasoning_config.get('config', {})
+            # The type 'llm' in config.yaml should map to LocalApiReasoningModel
+            if model_type == 'llm':
+                 try:
+                     # LocalApiReasoningModel expects 'api_url' and 'model_name'
+                     # Ensure these are present in model_params
+                     api_url = model_params.get('endpoint') # Mapping 'endpoint' from config to 'api_url'
+                     model_name = model_params.get('model_name')
+
+                     if not api_url or not model_name:
+                         print("[MMAT] Error: 'endpoint' or 'model_name' missing in reasoning model config parameters.")
+                         self.reasoning_model = None # Ensure model is None if config is incomplete
+                     else:
+                         self.reasoning_model = LocalApiReasoningModel(api_url=api_url, model_name=model_name)
+
+                 except TypeError as e:
+                     print(f"[MMAT] Error initializing reasoning model with parameters {model_params}: {e}")
+                     self.reasoning_model = None
+                 except Exception as e:
+                     print(f"[MMAT] An unexpected error occurred initializing reasoning model: {e}")
+                     self.reasoning_model = None
+            else:
+                print(f"[MMAT] Warning: Unknown reasoning model type '{model_type}' specified in config.")
+                self.reasoning_model = None
+
+        if 'vision' in models_config:
+            vision_config = models_config['vision']
+            vision_config = models_config['vision']
+            model_type = vision_config.get('type')
+            print(f"[MMAT] Debug: Vision model type read from config: '{model_type}'") # Debug print
+            # Parameters are expected in a 'parameters' dictionary
+            model_params = vision_config.get('parameters', {})
+            # The type 'vision_model' in config.yaml should map to LocalApiVisionModel
+            if model_type == 'vision_model':
+                 try:
+                     # LocalApiVisionModel expects 'api_url' and 'model_name'
+                     # Ensure these are present in model_params
+                     api_url = model_params.get('api_url') # Use 'api_url' directly from parameters
+                     model_name = model_params.get('model_name')
+
+                     if not api_url or not model_name:
+                         print("[MMAT] Error: 'api_url' or 'model_name' missing in vision model config parameters.")
+                         self.vision_model = None # Ensure model is None if config is incomplete
+                     else:
+                         self.vision_model = LocalApiVisionModel(api_url=api_url, model_name=model_name)
+
+                 except TypeError as e:
+                     print(f"[MMAT] Error initializing vision model with parameters {model_params}: {e}")
+                     self.vision_model = None
+                 except Exception as e:
+                     print(f"[MMAT] An unexpected error occurred initializing vision model: {e}")
+                     self.vision_model = None
+            else:
+                print(f"[MMAT] Warning: Unknown vision model type '{model_type}' specified in config.")
+                self.vision_model = None
+
+
+        # Initialize Plan Builder with config_manager and reasoning model
+        self.plan_builder = PlanBuilder(self.config_manager, self.reasoning_model)
+
+        # Initialize Graph API
+        self.graph_api = GraphAPI()
+
+        # Debug prints before ScreenshotAnalyzer initialization check
+        print(f"[MMAT] Debug: self.vision_model before check: {self.vision_model}")
+        print(f"[MMAT] Debug: self.graph_api before check: {self.graph_api}")
+
+        # Initialize Screenshot Analyzer (requires vision model and graph API)
+        if self.vision_model and self.graph_api:
+            print("[MMAT] Debug: Initializing ScreenshotAnalyzer.")
+            self.screenshot_analyzer = ScreenshotAnalyzer(self.vision_model, self.graph_api)
+        else:
+            self.screenshot_analyzer = None
+            print("[MMAT] Warning: Vision model or Graph API not initialized. Screenshot analysis will be unavailable.")
+
+        # Initialize core components that depend on models/analyzers
+        self.playwright_driver = PlaywrightDriver(self.config) # Initialize Playwright Driver
+        # Initialize Test Runner with driver, config_manager, and screenshot_analyzer
+        self.test_runner = TestRunner(self.playwright_driver, self.config_manager, self.screenshot_analyzer)
+
+        # Initialize Feedback Handler (requires config_manager and reasoning model)
+        if self.reasoning_model:
+            self.feedback_handler = FeedbackHandler(self.config_manager, self.reasoning_model)
+        else:
+            self.feedback_handler = None
+            print("[MMAT] Warning: Reasoning model not initialized. Feedback functionality will be limited.")
 
     def run(self, args):
         """
@@ -275,8 +388,24 @@ class MMAT:
 
         elif args.command == 'feedback':
             print("[MMAT] Entering feedback mode...")
-            # Placeholder for feedback logic
-            pass
+            test_plan_path = args.test
+            step_number = args.step
+            report_path = args.report
+
+            if not test_plan_path:
+                print("[MMAT] Error: Test plan path is required for 'feedback' command.")
+                return
+
+            if not self.feedback_handler:
+                print("[MMAT] Error: Feedback handler not initialized. Reasoning model might be missing.")
+                return
+
+            try:
+                self.feedback_handler.handle_feedback(test_plan_path, step_number, report_path)
+            except Exception as e:
+                print(f"[MMAT] An error occurred during feedback: {e}")
+                import traceback
+                traceback.print_exc()
 
         elif args.command == 'list':
             print("[MMAT] Listing tests...")
