@@ -13,116 +13,6 @@ from mmat.models.local_api_reasoning_model import LocalApiReasoningModel # Impor
 from mmat.models.local_api_vision_model import LocalApiVisionModel # Import the concrete vision model
 from mmat.graph.graph_api import GraphAPI # Import GraphAPI
 from mmat.analysis.screenshot_analyzer import ScreenshotAnalyzer # Import ScreenshotAnalyzer
-
-class MMAT:
-    """
-    Core MMAT (Multi Modal AI Tester) framework class.
-    Manages the overall test execution, generation, and feedback loop.
-    """
-    def __init__(self, config_path="config/config.yaml"):
-        """
-        Initializes the MMAT framework.
-
-        Args:
-            config_path (str): Path to the configuration file.
-        """
-        self.config_manager = ConfigManager(config_path) # Use ConfigManager
-        self.config = self.config_manager.config # Load config
-
-        # Initialize other modules (Graph API, Playwright Driver, Models, Analyzers, etc.)
-        # based on the loaded configuration.
-        print(f"[MMAT] Initialized with config from {config_path}")
-
-        # Initialize models based on configuration (must happen before TestRunner and ScreenshotAnalyzer)
-        self.reasoning_model = None
-        self.vision_model = None
-        models_config = self.config.get('models', {})
-
-        if 'reasoning' in models_config:
-            reasoning_config = models_config['reasoning']
-            model_type = reasoning_config.get('type')
-            # Parameters are expected in a nested 'config' dictionary
-            model_params = reasoning_config.get('config', {})
-            # The type 'llm' in config.yaml should map to LocalApiReasoningModel
-            if model_type == 'llm':
-                 try:
-                     # LocalApiReasoningModel expects 'api_url' and 'model_name'
-                     # Ensure these are present in model_params
-                     api_url = model_params.get('endpoint') # Mapping 'endpoint' from config to 'api_url'
-                     model_name = model_params.get('model_name')
-
-                     if not api_url or not model_name:
-                         print("[MMAT] Error: 'endpoint' or 'model_name' missing in reasoning model config parameters.")
-                         self.reasoning_model = None # Ensure model is None if config is incomplete
-                     else:
-                         self.reasoning_model = LocalApiReasoningModel(api_url=api_url, model_name=model_name)
-
-                 except TypeError as e:
-                     print(f"[MMAT] Error initializing reasoning model with parameters {model_params}: {e}")
-                     self.reasoning_model = None
-                 except Exception as e:
-                     print(f"[MMAT] An unexpected error occurred initializing reasoning model: {e}")
-                     self.reasoning_model = None
-            else:
-                print(f"[MMAT] Warning: Unknown reasoning model type '{model_type}' specified in config.")
-                self.reasoning_model = None
-
-        if 'vision' in models_config:
-            vision_config = models_config['vision']
-            vision_config = models_config['vision']
-            model_type = vision_config.get('type')
-            print(f"[MMAT] Debug: Vision model type read from config: '{model_type}'") # Debug print
-            # Parameters are expected in a 'parameters' dictionary
-            model_params = vision_config.get('parameters', {})
-            # The type 'vision_model' in config.yaml should map to LocalApiVisionModel
-            if model_type == 'vision_model':
-                 try:
-                     # LocalApiVisionModel expects 'api_url' and 'model_name'
-                     # Ensure these are present in model_params
-                     api_url = model_params.get('api_url') # Use 'api_url' directly from parameters
-                     model_name = model_params.get('model_name')
-
-                     if not api_url or not model_name:
-                         print("[MMAT] Error: 'api_url' or 'model_name' missing in vision model config parameters.")
-                         self.vision_model = None # Ensure model is None if config is incomplete
-                     else:
-                         self.vision_model = LocalApiVisionModel(api_url=api_url, model_name=model_name)
-
-                 except TypeError as e:
-                     print(f"[MMAT] Error initializing vision model with parameters {model_params}: {e}")
-                     self.vision_model = None
-                 except Exception as e:
-                     print(f"[MMAT] An unexpected error occurred initializing vision model: {e}")
-                     self.vision_model = None
-            else:
-                print(f"[MMAT] Warning: Unknown vision model type '{model_type}' specified in config.")
-                self.vision_model = None
-
-
-        # Initialize Plan Builder with config_manager and reasoning model
-        self.plan_builder = PlanBuilder(self.config_manager, self.reasoning_model)
-
-        # Initialize Graph API
-        self.graph_api = GraphAPI()
-
-        # Debug prints before ScreenshotAnalyzer initialization check
-        print(f"[MMAT] Debug: self.vision_model before check: {self.vision_model}")
-        print(f"[MMAT] Debug: self.graph_api before check: {self.graph_api}")
-
-        # Initialize Screenshot Analyzer (requires vision model and graph API)
-        if self.vision_model and self.graph_api:
-            print("[MMAT] Debug: Initializing ScreenshotAnalyzer.")
-            self.screenshot_analyzer = ScreenshotAnalyzer(self.vision_model, self.graph_api)
-        else:
-            self.screenshot_analyzer = None
-            print("[MMAT] Warning: Vision model or Graph API not initialized. Screenshot analysis will be unavailable.")
-
-        # Initialize core components that depend on models/analyzers
-        self.playwright_driver = PlaywrightDriver(self.config) # Initialize Playwright Driver
-        # Initialize Test Runner with driver, config_manager, and screenshot_analyzer
-        self.test_runner = TestRunner(self.playwright_driver, self.config_manager, self.screenshot_analyzer)
-
-        # Placeholder for other module instances
 from mmat.orchestration.feedback_handler import FeedbackHandler # Import FeedbackHandler
 
 class MMAT:
@@ -179,7 +69,6 @@ class MMAT:
                 self.reasoning_model = None
 
         if 'vision' in models_config:
-            vision_config = models_config['vision']
             vision_config = models_config['vision']
             model_type = vision_config.get('type')
             print(f"[MMAT] Debug: Vision model type read from config: '{model_type}'") # Debug print
@@ -408,14 +297,52 @@ class MMAT:
                 traceback.print_exc()
 
         elif args.command == 'list':
-            print("[MMAT] Listing tests...")
-            # Placeholder for list logic
-            pass
+            print("[MMAT] Listing files...")
+            search_path = args.path
+            file_type = args.type
+
+            if not os.path.isdir(search_path):
+                print(f"[MMAT] Error: Path '{search_path}' is not a valid directory.")
+                return
+
+            print(f"[MMAT] Searching for {file_type} files in '{search_path}'...")
+
+            found_files = []
+            for root, _, files in os.walk(search_path):
+                for file in files:
+                    relative_path = os.path.relpath(os.path.join(root, file), start=search_path)
+                    if file_type == "all":
+                        found_files.append(relative_path)
+                    elif file_type == "functional" and (file.lower().endswith(('.yaml', '.yml')) and "functional_descriptions" in root):
+                        found_files.append(relative_path)
+                    elif file_type == "e2e" and (file.lower().endswith('.py') and "tests\\e2e" in root):
+                        found_files.append(relative_path)
+
+            if found_files:
+                for f in sorted(found_files):
+                    print(f"- {f}")
+            else:
+                print("[MMAT] No matching files found.")
 
         elif args.command == 'show':
-            print("[MMAT] Showing test details...")
-            # Placeholder for show logic
-            pass
+            print("[MMAT] Showing file details...")
+            file_path = args.file_path
+
+            if not os.path.exists(file_path):
+                print(f"[MMAT] Error: File '{file_path}' not found.")
+                return
+            if not os.path.isfile(file_path):
+                print(f"[MMAT] Error: Path '{file_path}' is not a file.")
+                return
+
+            try:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                print(f"\n--- Content of {file_path} ---\n")
+                print(content)
+                print(f"\n--- End of {file_path} ---\n")
+            except Exception as e:
+                print(f"[MMAT] Error reading file '{file_path}': {e}")
 
         elif args.command == 'import-e2e':
             print("[MMAT] Importing E2E test script...")
@@ -757,62 +684,3 @@ if __name__ == "__main__":
     asyncio.run(main())
 """
         return code
-
-    # The following methods are now handled by the run method based on parsed args
-    # or delegated to other classes (TestRunner, PlanBuilder).
-    # Keeping them as placeholders or removing them if not needed elsewhere.
-
-    # def run_test(self, test_plan_path, start_step=1):
-    #     """Runs a test plan."""
-    #     print(f"[MMAT] Running test plan: {test_plan_path} starting from step {start_step}")
-    #     # This logic is now in the run method under 'run' command
-    #     pass
-
-    # def generate_test(self, description, output_path, force=False):
-    #     """Generates a new E2E test from a description."""
-    #     print(f"[MMAT] Generating test from description. Output: {output_path}")
-    #     # This logic is now in the run method under 'generate' command
-    #     pass
-
-    # def export_test(self, test_plan_path, export_format, lang=None, output_path=None):
-    #     """Exports an E2E test to a different format (e.g., Playwright code)."""
-    #     print(f"[MMAT] Exporting test plan: {test_plan_path} to {export_format}")
-    #     # This logic will be in the run method under 'export' command
-    #     pass
-
-    # def describe_test(self, test_plan_path, output_path):
-    #     """Creates or updates a human-readable test description from a test plan."""
-    #     print(f"[MMAT] Generating description for test plan: {test_plan_path}")
-    #     # This logic will be in the run method under 'describe' command
-    #     pass
-
-    # def feedback(self, test_plan_path):
-    #     """Enters improvement mode for a test plan."""
-    #     print(f"[MMAT] Entering feedback mode for test plan: {test_plan_path}")
-    #     # This logic will be in the run method under 'feedback' command
-    #     pass
-
-    # def list_tests(self, filters):
-    #     """Lists tests based on filters."""
-    #     print(f"[MMAT] Listing tests with filters: {filters}")
-    #     # This logic will be in the run method under 'list' command
-    #     pass
-
-    # def show_test(self, test_plan_path):
-    #     """Displays details of a test plan."""
-    #     print(f"[MMAT] Showing details for test plan: {test_plan_path}")
-    #     # This logic will be in the run method under 'show' command
-    #     pass
-
-    # def validate_plan(self, test_plan_path):
-    #     """Validates a test plan."""
-    #     print(f"[MMAT] Validating test plan: {test_plan_path}")
-    #     # Placeholder for validation logic
-    #     pass
-
-
-if __name__ == "__main__":
-    mmat_app = MMAT()
-    # Parse command line arguments and pass them to the run method
-    args = parse_args()
-    mmat_app.run(args)

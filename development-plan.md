@@ -26,12 +26,12 @@ Based on the `README.md` and `matt-functional-description.md` files, here is an 
     *   Autonomous exploration and knowledge gathering during test execution.
     *   Post-test knowledge analysis and reasoning.
     *   Generating comprehensive test summaries and reports (beyond basic JSON).
-*   The full feedback cycle functionality (`mmat feedback`) for test improvement based on execution results and user input, especially for visual steps. - **DONE**
+*   The full feedback cycle functionality (`mmat feedback`) for test improvement based on execution results and user input, especially for visual steps. - **IMPLEMENTED AND TESTED (Initiation confirmed)**
     *   Automatic synchronization between descriptions and tests after changes.
     *   Visual element identification using bounding boxes, OCR, and textual descriptions when DOM information is unavailable.
 *   A separation layer for easily swapping the graph backend.
 *   Full implementation of features like starting a test run from any specific step (`mmat run --step`).
-*   Complete filtering and status reporting capabilities for the `mmat list` command.
+*   Complete filtering and status reporting capabilities for the `mmat list` command. - **IMPLEMENTED AND TESTED**
 *   Test Data Management.
 *   Advanced Validation and Analysis features.
 *   A comprehensive Plugin System for extending framework components.
@@ -96,6 +96,8 @@ To test the MMAT commands, we can create a new project directory `test-mmat` and
     *   Commands: `cd test-mmat/my_mmat_project && mmat list --all` - **DONE**
     *   Commands: `cd test-mmat/my_mmat_project && mmat list --with-json` - **DONE**
     *   Commands: `cd test-mmat/my_mmat_project && mmat list --with-playwright` - **DONE**
+    *   **Note:** `mmat list` and `mmat show` are now direct commands and have been implemented.
 10. **Test `mmat show`:** Display the details of one of the test plan files.
     *   Command: `cd test-mmat/my_mmat_project && mmat show --test tests/functional/comment_submission_plan.yaml` - **DONE**
-11. **Testing `mmat feedback`:** This command is designed for interactive test improvement after a run failure. To test this, we would need to intentionally create or modify a test plan step so it fails during `mmat run`, and then use `mmat feedback` to see if the interactive process starts and allows for modifications. This might be more complex to automate and might require manual steps or a specifically crafted failing test case.
+    *   **Note:** `mmat list` and `mmat show` are now direct commands and have been implemented.
+11. **Testing `mmat feedback`:** This command is designed for interactive test improvement after a run failure. To test this, we would need to intentionally create or modify a test plan step so it fails during `mmat run`, and then use `mmat feedback` to see if the interactive process starts and allows for modifications. This might be more complex to automate and might require manual steps or a specifically crafted failing test case. - **TESTED (Initiation confirmed)**

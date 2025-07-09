@@ -9,6 +9,7 @@ from mmat.core.mmat import MMAT # Uncomment the import
 
 def main():
     """Main entry point for the MMAT CLI."""
+    print("[DEBUG] main() function in mmat/cli/main.py is being executed.")
     parser = argparse.ArgumentParser(description="MMAT - Model-based Multi-Agent Testing Framework")
 
     # Subcommands
@@ -108,6 +109,27 @@ def main():
         "--config",
         default="config/config.yaml", # Default config path
         help="Path to the configuration file (YAML or JSON)",
+    )
+
+    # List command
+    list_parser = subparsers.add_parser("list", help="List available test plans or functional descriptions")
+    list_parser.add_argument(
+        "--type",
+        choices=["functional", "e2e", "all"],
+        default="all",
+        help="Type of files to list: 'functional' (test plans), 'e2e' (E2E scripts), or 'all' (default)",
+    )
+    list_parser.add_argument(
+        "--path",
+        default=".",
+        help="Path to the directory to search for files (default: current directory)",
+    )
+
+    # Show command
+    show_parser = subparsers.add_parser("show", help="Display the content of a test plan or functional description")
+    show_parser.add_argument(
+        "file_path",
+        help="Path to the file to display (test plan or functional description)",
     )
 
     args = parser.parse_args()
