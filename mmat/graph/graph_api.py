@@ -4,6 +4,12 @@ class GraphAPI:
     """
     Handles the creation and manipulation of the test execution graph.
     """
+    def __init__(self):
+        """
+        Initializes the GraphAPI.
+        """
+        print("[GraphAPI] Initialized.")
+
     def build_graph(self, test_suites):
         """
         Builds the execution graph from loaded test suites.

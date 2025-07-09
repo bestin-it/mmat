@@ -46,32 +46,49 @@ class MMAT:
         if 'reasoning' in models_config:
             reasoning_config = models_config['reasoning']
             model_type = reasoning_config.get('type')
-            model_params = reasoning_config.get('parameters', {})
-            if model_type == 'reasoning_model': # Assuming 'reasoning_model' type maps to LocalApiReasoningModel
-                 try:
-                     self.reasoning_model = LocalApiReasoningModel(**model_params)
-                 except TypeError as e:
-                     print(f"[MMAT] Error initializing reasoning model with parameters {model_params}: {e}")
-                 except Exception as e:
-                     print(f"[MMAT] An unexpected error occurred initializing reasoning model: {e}")
-            else:
-                print(f"[MMAT] Warning: Unknown reasoning model type '{model_type}' specified in config.")
-
-        if 'vision' in models_config:
-            vision_config = models_config['vision']
-            model_type = vision_config.get('type')
             # Parameters are expected in a nested 'config' dictionary
-            model_params = vision_config.get('config', {})
-            # The type 'vision' in config.yaml should map to LocalApiVisionModel
-            if model_type == 'vision':
+            model_params = reasoning_config.get('config', {})
+            # The type 'llm' in config.yaml should map to LocalApiReasoningModel
+            if model_type == 'llm':
                  try:
-                     # LocalApiVisionModel expects 'api_url' and 'model_name'
+                     # LocalApiReasoningModel expects 'api_url' and 'model_name'
                      # Ensure these are present in model_params
                      api_url = model_params.get('endpoint') # Mapping 'endpoint' from config to 'api_url'
                      model_name = model_params.get('model_name')
 
                      if not api_url or not model_name:
-                         print("[MMAT] Error: 'endpoint' or 'model_name' missing in vision model config parameters.")
+                         print("[MMAT] Error: 'endpoint' or 'model_name' missing in reasoning model config parameters.")
+                         self.reasoning_model = None # Ensure model is None if config is incomplete
+                     else:
+                         self.reasoning_model = LocalApiReasoningModel(api_url=api_url, model_name=model_name)
+
+                 except TypeError as e:
+                     print(f"[MMAT] Error initializing reasoning model with parameters {model_params}: {e}")
+                     self.reasoning_model = None
+                 except Exception as e:
+                     print(f"[MMAT] An unexpected error occurred initializing reasoning model: {e}")
+                     self.reasoning_model = None
+            else:
+                print(f"[MMAT] Warning: Unknown reasoning model type '{model_type}' specified in config.")
+                self.reasoning_model = None
+
+        if 'vision' in models_config:
+            vision_config = models_config['vision']
+            vision_config = models_config['vision']
+            model_type = vision_config.get('type')
+            print(f"[MMAT] Debug: Vision model type read from config: '{model_type}'") # Debug print
+            # Parameters are expected in a 'parameters' dictionary
+            model_params = vision_config.get('parameters', {})
+            # The type 'vision_model' in config.yaml should map to LocalApiVisionModel
+            if model_type == 'vision_model':
+                 try:
+                     # LocalApiVisionModel expects 'api_url' and 'model_name'
+                     # Ensure these are present in model_params
+                     api_url = model_params.get('api_url') # Use 'api_url' directly from parameters
+                     model_name = model_params.get('model_name')
+
+                     if not api_url or not model_name:
+                         print("[MMAT] Error: 'api_url' or 'model_name' missing in vision model config parameters.")
                          self.vision_model = None # Ensure model is None if config is incomplete
                      else:
                          self.vision_model = LocalApiVisionModel(api_url=api_url, model_name=model_name)
@@ -93,8 +110,13 @@ class MMAT:
         # Initialize Graph API
         self.graph_api = GraphAPI()
 
+        # Debug prints before ScreenshotAnalyzer initialization check
+        print(f"[MMAT] Debug: self.vision_model before check: {self.vision_model}")
+        print(f"[MMAT] Debug: self.graph_api before check: {self.graph_api}")
+
         # Initialize Screenshot Analyzer (requires vision model and graph API)
         if self.vision_model and self.graph_api:
+            print("[MMAT] Debug: Initializing ScreenshotAnalyzer.")
             self.screenshot_analyzer = ScreenshotAnalyzer(self.vision_model, self.graph_api)
         else:
             self.screenshot_analyzer = None
@@ -461,15 +483,15 @@ models:
     provider: local_api # Example: using a local API endpoint
     type: llm
     config:
-      endpoint: http://localhost:8000/v1
-      model_name: my-local-llm
+      endpoint: http://172.29.32.1:1234/v1
+      model_name: mistralai/magistral-small
 
-vision:
-    provider: local_ollama # Example: using Ollama
-    type: vision
-    config:
-      model_name: llava:7b
-      endpoint: http://localhost:11434/api/generate
+  vision:
+    provider: local_api # Using local API for vision model as well
+    type: vision_model # Changed type to match LocalApiVisionModel
+    parameters: # Changed to parameters to match LocalApiVisionModel
+      api_url: http://172.29.32.1:1234/v1
+      model_name: mistralai/mistral-small-3.2
 
 reporting:
   - type: json

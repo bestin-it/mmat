@@ -2,6 +2,9 @@ import argparse
 import sys
 import os
 
+# Add the project root to the Python path to allow for module imports
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
+
 from mmat.core.mmat import MMAT # Uncomment the import
 
 def main():
@@ -37,6 +40,11 @@ def main():
         type=int,
         default=1,
         help="Step number to start execution from (1-based index)",
+    )
+    run_parser.add_argument(
+        "--config",
+        default="config/config.yaml", # Default config path
+        help="Path to the configuration file (YAML or JSON)",
     )
     # Add other potential run options here (e.g., --reporter, --environment)
 
@@ -87,8 +95,9 @@ def main():
 
     args = parser.parse_args()
 
-    # Instantiate MMAT and run the command
-    mmat_app = MMAT()
+    # Instantiate MMAT with the specified config path
+    config_path = args.config if hasattr(args, 'config') else "config/config.yaml"
+    mmat_app = MMAT(config_path=config_path)
     mmat_app.run(args)
 
 

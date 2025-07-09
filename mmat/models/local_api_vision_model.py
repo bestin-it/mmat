@@ -1,7 +1,7 @@
 import base64
 import requests
 from typing import Any, Dict, List, Tuple
-from mmat.models.model import VisionModel # Import VisionModel from the correct path
+from mmat.models.vision_model import VisionModel # Import VisionModel from the correct path
 from mmat.utils.logger import Logger
 
 class LocalApiVisionModel(VisionModel):

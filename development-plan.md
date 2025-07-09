@@ -10,7 +10,7 @@ Based on the `README.md` and `matt-functional-description.md` files, here is an 
 *   Installation process via pip and setting up the `mmat` alias on Windows.
 *   Project initialization using the `mmat init` command.
 *   Concepts and file structures for Functional Descriptions (Markdown), Functional Test Plans (YAML/JSON), and E2E Tests (Playwright Python).
-*   Configuration management via `config.yaml` for environments, models, and reporting. **LLM models configured in main config.yaml.** Specifically, `mistralai/mistral-small-3.2` is used for the visual LLM model and `qwen3-32b` for thinking with tools. These models are run locally using LM Studio at `http://172.29.32.1:1234`.
+*   Configuration management via `config.yaml` for environments, models, and reporting. **LLM models configured in main config.yaml.** Specifically, `mistralai/mistral-small-3.2` is used for the visual LLM model and `mistralai/magistral-small` for thinking with tools. These models are run locally using LM Studio at `http://172.29.32.1:1234`.
 *   Basic Playwright integration for browser automation and DOM reading.
 *   HTML structure analysis capabilities.
 *   A JSON reporter for test results.

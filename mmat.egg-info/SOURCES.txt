@@ -38,6 +38,8 @@ mmat/graph/models.py
 mmat/importer/__init__.py
 mmat/importer/playwright_importer.py
 mmat/models/__init__.py
+mmat/models/local_api_reasoning_model.py
+mmat/models/local_api_vision_model.py
 mmat/models/model.py
 mmat/models/reasoning_model.py
 mmat/models/vision_model.py
