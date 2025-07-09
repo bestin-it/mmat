@@ -36,17 +36,22 @@ class ScreenshotAnalyzer:
         self.logger.info(f"Analyzing screenshot: {screenshot_path}")
         try:
             # Use the vision model to analyze the screenshot
-            # This is a placeholder; the actual implementation would involve
-            # passing the screenshot data to the vision model.
-            analysis_result = self.vision_model.analyze_image(screenshot_path) # Placeholder method
+            # Use the vision model to analyze the screenshot
+            analysis_result = self.vision_model.analyze_screenshot(screenshot_path)
 
-            # Update graph based on analysis_result, including adding VisualRef nodes
-            # This is a placeholder; actual implementation would parse analysis_result
-            # and add/update nodes (including visual_ref type) and edges in the graph_api.
-            # Example: self.graph_api.add_node(node_type="visual_ref", data={"visual_ref": {...}})
+            # Process the analysis result from the vision model
+            # Assuming the result structure is like OpenAI chat completion response
+            if analysis_result and analysis_result.get("choices"):
+                model_output = analysis_result["choices"][0]["message"]["content"]
+                self.logger.info(f"Screenshot analysis result: {model_output[:200]}...") # Log first 200 chars
+                # TODO: Parse model_output and update graph with visual findings and VisualRefs
+                # Example: self.graph_api.add_node(node_type="visual_ref", data={"visual_ref": {...}})
+            else:
+                self.logger.warning("Vision model analysis returned no usable result.")
+                model_output = "No analysis result."
 
-            self.logger.info("Screenshot analysis complete.")
-            return analysis_result
+            self.logger.info("Screenshot analysis processing complete.")
+            return {"raw_result": analysis_result, "parsed_content": model_output}
         except Exception as e:
             self.logger.error(f"Error during screenshot analysis: {e}")
             raise

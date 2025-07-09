@@ -11,6 +11,8 @@ from mmat.config.config_manager import ConfigManager # Import ConfigManager
 from mmat.plan_builder.plan_builder import PlanBuilder # Import PlanBuilder
 from mmat.models.local_api_reasoning_model import LocalApiReasoningModel # Import the concrete reasoning model
 from mmat.models.local_api_vision_model import LocalApiVisionModel # Import the concrete vision model
+from mmat.graph.graph_api import GraphAPI # Import GraphAPI
+from mmat.analysis.screenshot_analyzer import ScreenshotAnalyzer # Import ScreenshotAnalyzer
 
 class MMAT:
     """
@@ -58,25 +60,49 @@ class MMAT:
         if 'vision' in models_config:
             vision_config = models_config['vision']
             model_type = vision_config.get('type')
-            model_params = vision_config.get('parameters', {})
-            if model_type == 'vision_model': # Assuming 'vision_model' type maps to LocalApiVisionModel
+            # Parameters are expected in a nested 'config' dictionary
+            model_params = vision_config.get('config', {})
+            # The type 'vision' in config.yaml should map to LocalApiVisionModel
+            if model_type == 'vision':
                  try:
-                     self.vision_model = LocalApiVisionModel(**model_params)
+                     # LocalApiVisionModel expects 'api_url' and 'model_name'
+                     # Ensure these are present in model_params
+                     api_url = model_params.get('endpoint') # Mapping 'endpoint' from config to 'api_url'
+                     model_name = model_params.get('model_name')
+
+                     if not api_url or not model_name:
+                         print("[MMAT] Error: 'endpoint' or 'model_name' missing in vision model config parameters.")
+                         self.vision_model = None # Ensure model is None if config is incomplete
+                     else:
+                         self.vision_model = LocalApiVisionModel(api_url=api_url, model_name=model_name)
+
                  except TypeError as e:
                      print(f"[MMAT] Error initializing vision model with parameters {model_params}: {e}")
+                     self.vision_model = None
                  except Exception as e:
                      print(f"[MMAT] An unexpected error occurred initializing vision model: {e}")
+                     self.vision_model = None
             else:
                 print(f"[MMAT] Warning: Unknown vision model type '{model_type}' specified in config.")
+                self.vision_model = None
 
 
         # Initialize Plan Builder with config_manager and reasoning model
         self.plan_builder = PlanBuilder(self.config_manager, self.reasoning_model)
 
+        # Initialize Graph API
+        self.graph_api = GraphAPI()
+
+        # Initialize Screenshot Analyzer (requires vision model and graph API)
+        if self.vision_model and self.graph_api:
+            self.screenshot_analyzer = ScreenshotAnalyzer(self.vision_model, self.graph_api)
+        else:
+            self.screenshot_analyzer = None
+            print("[MMAT] Warning: Vision model or Graph API not initialized. Screenshot analysis will be unavailable.")
+
+
         # Placeholder for other module instances
-        self.graph_api = None # Initialize Graph API
         self.html_analyzer = None # Initialize HTML Analyzer
-        self.screenshot_analyzer = None # Initialize Screenshot Analyzer
         self.reporting = None # Initialize Reporting
         self.feedback_handler = None # Initialize Feedback Handler
 

@@ -10,7 +10,7 @@ class TestRunner:
     """
     Handles the execution of MMAT test plans.
     """
-    def __init__(self, driver: PlaywrightDriver, config_manager: ConfigManager):
+    def __init__(self, driver: PlaywrightDriver, config_manager: ConfigManager, screenshot_analyzer=None):
         """
         Initializes the TestRunner.
 
@@ -21,6 +21,7 @@ class TestRunner:
         self.driver = driver
         self.config_manager = config_manager
         self.config = self.config_manager.config
+        self.screenshot_analyzer = screenshot_analyzer # Store the screenshot analyzer
         print("[TestRunner] Initialized.")
 
     def load_test_plan(self, test_plan_path: str) -> dict | None:
@@ -107,7 +108,31 @@ class TestRunner:
 
             except Exception as e:
                 print(f"[TestRunner] An error occurred during execution of step {step_number} '{step_name}': {e} ❌")
-                # return False # Uncomment to stop on first exception
+                        # return False # Uncomment to stop on first exception
+
+            # After executing a step that might change the page, take a screenshot and analyze it
+            # TODO: Refine which steps trigger a screenshot (e.g., navigate, click, fill)
+            # TODO: Determine screenshot naming convention and storage location
+            screenshot_path = f"output/screenshots/step_{step_number}.png"
+            try:
+                # Ensure the screenshot directory exists
+                os.makedirs(os.path.dirname(screenshot_path), exist_ok=True)
+                # Use the correct method name from PlaywrightDriver
+                self.driver.screenshot(screenshot_path)
+                print(f"[TestRunner] Screenshot taken: {screenshot_path}")
+
+                if self.screenshot_analyzer:
+                    print(f"[TestRunner] Analyzing screenshot for step {step_number}...")
+                    analysis_result = self.screenshot_analyzer.analyze_screenshot(screenshot_path)
+                    # TODO: Process analysis_result (e.g., update graph)
+                    print(f"[TestRunner] Screenshot analysis for step {step_number} complete.")
+                else:
+                    print("[TestRunner] Screenshot Analyzer not available. Skipping analysis.")
+
+            except Exception as e:
+                print(f"[TestRunner] Error taking or analyzing screenshot for step {step_number}: {e}")
+                # Continue execution even if screenshot/analysis fails
+
 
         print("[TestRunner] Test plan execution finished.")
         return True # Indicate that execution finished (not necessarily all steps succeeded)
