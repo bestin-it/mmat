@@ -10,7 +10,7 @@ Based on the `README.md` and `matt-functional-description.md` files, here is an 
 *   Installation process via pip and setting up the `mmat` alias on Windows.
 *   Project initialization using the `mmat init` command.
 *   Concepts and file structures for Functional Descriptions (Markdown), Functional Test Plans (YAML/JSON), and E2E Tests (Playwright Python).
-*   Configuration management via `config.yaml` for environments, models, and reporting. **LLM models configured in main config.yaml.** Specifically, `mistralai/mistral-small-3.2` is used for the visual LLM model and `mistralai/magistral-small` for thinking with tools. These models are run locally using LM Studio at `http://172.29.32.1:1234`.
+*   Configuration management via `config.yaml` for environments, models, and reporting. **LLM models configured in main config.yaml.** Specifically, `mistralai/mistral-small-3.2` is used for the visual LLM model and `mistralai/magistral-small` for thinking with tools. These models are run locally using LM Studio at `http://172.29.32.1:1234`. - **DONE**
 *   Basic Playwright integration for browser automation and DOM reading.
 *   HTML structure analysis capabilities.
 *   A JSON reporter for test results.
@@ -60,7 +60,7 @@ Based on the `README.md` and `matt-functional-description.md` files, here is an 
     *   Full test plan generation from descriptions using AI models (`mmat generate`).
     *   Visual analysis of screenshots via multimodal models.
     *   Building and updating a local knowledge graph of elements and interactions.
-    *   Autonomous exploration and knowledge gathering during test execution.
+        *   Autonomous exploration and knowledge gathering during test execution.
     *   Post-test knowledge analysis and reasoning.
     *   Generating comprehensive test summaries and reports (beyond basic JSON).
     *   The full feedback cycle functionality (`mmat feedback`) for test improvement based on execution results and user input, especially for visual steps.
@@ -80,20 +80,22 @@ Based on the `README.md` and `matt-functional-description.md` files, here is an 
 To test the MMAT commands, we can create a new project directory `test-mmat` and systematically use each command. This plan assumes we will need a simple web page or application to test against for commands like `run`.
 
 1.  **Create the project directory:** Create a new directory named `test-mmat`. - **DONE**
-2.  **Initialize MMAT project:** Navigate into `test-mmat` and run `mmat init .` (or `mmat init test-mmat` if we want a nested directory, but `.` is simpler for testing commands within the new root). This will set up the basic MMAT project structure (`functional_descriptions`, `tests`, `config`). - **DONE** (Corrected to `mmat init test-mmat` from parent directory)
-3.  **Create a sample functional description:** Create a simple Markdown file (e.g., `test-mmat/functional_descriptions/sample_login.md`) describing a basic web interaction, like logging into a hypothetical page. - **DONE**
-4.  **Test `mmat build`:** Use `mmat build` to generate a test plan (e.g., YAML) from the sample functional description. This will test the framework's ability to process descriptions and potentially use a reasoning model (if configured and available) to create a structured plan.
-    *   Command: `mmat build functional_descriptions/sample_login.md --input-type markdown --output tests/functional/sample_login_plan.yaml --config config/config.yaml` (We'll need a basic `config.yaml` in `test-mmat/config` first, perhaps copied from the main MMAT project or created with minimal settings). - **DONE** (Corrected command to `mmat generate` and ensured `test-mmat/config/config.yaml` exists and is configured)
-5.  **Test `mmat run`:** Attempt to run the generated test plan. This command requires a target web page and a configured environment (like Playwright). We would need to either point it to a live simple site or set up a local one for this test. This step will test the execution engine and environment interaction.
-    *   Command: `mmat run tests/functional/sample_login_plan.yaml --plan-type yaml --config config/config.yaml` (Requires a running web target and configured `baseUrl` in `config.yaml`). - **DONE** (Tested against local `index.html`)
+2.  **Initialize MMAT project:** Navigate into `test-mmat` and run `mmat init`. This created a nested project `my_mmat_project` inside `test-mmat`, setting up the basic MMAT project structure (`functional_descriptions`, `tests`, `config`). - **DONE**
+3.  **Create a sample functional description:** Create a simple Markdown file (e.g., `test-mmat/my_mmat_project/functional_descriptions/sample_login.md`) describing a basic web interaction, like logging into a hypothetical page. (Using `comment_submission.md` created by `mmat init` as the sample). - **DONE**
+4.  **Test `mmat generate`:** Used `mmat generate` to generate a test plan (e.g., YAML) from the sample functional description. This tested the framework's ability to process descriptions and use the reasoning model to create a structured plan.
+    *   Command: `cd test-mmat/my_mmat_project && mmat generate functional_descriptions/comment_submission.md --input-type markdown --output tests/functional/comment_submission_plan.yaml --config config/config.yaml` - **DONE**
+5.  **Test `mmat run`:** Attempt to run the generated test plan. This command requires a target web page and a configured environment (like Playwright). This step will test the execution engine and environment interaction.
+    *   Command: `cd test-mmat/my_mmat_project && mmat run tests/functional/comment_submission_plan.yaml --plan-type yaml --config config/config.yaml` (Uses `https://bestin-it.com/photo-into-embroidery-art-interactive-tool-converter/` as `baseUrl` from `config.yaml`). - **DONE**
 6.  **Test `mmat export`:** Export the generated test plan into Playwright Python code. This tests the conversion capability.
-    *   Command: `mmat export tests/functional/sample_login_plan.yaml --output tests/e2e/sample_login_test.py` - **DONE**
+    *   Command: `cd test-mmat/my_mmat_project && mmat export tests/functional/comment_submission_plan.yaml --output tests/e2e/comment_submission_test.py` - **DONE**
 7.  **Test `mmat import-e2e`:** Import the exported Playwright code back into an MMAT test plan format. This tests the reverse conversion.
-    *   Command: `mmat import-e2e tests/e2e/sample_login_test.py --output tests/functional/imported_sample_login_plan.yaml` - **DONE**
+    *   Command: `cd test-mmat/my_mmat_project && mmat import-e2e tests/e2e/comment_submission_test.py --output tests/functional/imported_comment_submission_plan.yaml` - **DONE**
 8.  **Test `mmat describe`:** Generate a human-readable description from one of the test plans (either the original generated one or the imported one). This tests the description generation capability, likely involving a reasoning model.
-    *   Command: `mmat describe tests/functional/sample_login_plan.yaml --output functional_descriptions/generated_description.md` - **DONE**
-9.  **Test `mmat list`:** Use `mmat list` with various flags to see how it lists the created test files (`sample_login_plan.yaml`, `sample_login_test.py`, `imported_sample_login_plan.yaml`).
-    *   Commands: `mmat list --all`, `mmat list --with-json`, `mmat list --with-playwright` - **DONE**
+    *   Command: `cd test-mmat/my_mmat_project && mmat describe tests/functional/comment_submission_plan.yaml --output functional_descriptions/generated_comment_description.md` - **DONE**
+9.  **Test `mmat list`:** Use `mmat list` with various flags to see how it lists the created test files (`comment_submission_plan.yaml`, `comment_submission_test.py`, `imported_comment_submission_plan.yaml`).
+    *   Commands: `cd test-mmat/my_mmat_project && mmat list --all` - **DONE**
+    *   Commands: `cd test-mmat/my_mmat_project && mmat list --with-json` - **DONE**
+    *   Commands: `cd test-mmat/my_mmat_project && mmat list --with-playwright` - **DONE**
 10. **Test `mmat show`:** Display the details of one of the test plan files.
-    *   Command: `mmat show --test tests/functional/sample_login_plan.yaml` - **DONE**
+    *   Command: `cd test-mmat/my_mmat_project && mmat show --test tests/functional/comment_submission_plan.yaml` - **DONE**
 11. **Testing `mmat feedback`:** This command is designed for interactive test improvement after a run failure. To test this, we would need to intentionally create or modify a test plan step so it fails during `mmat run`, and then use `mmat feedback` to see if the interactive process starts and allows for modifications. This might be more complex to automate and might require manual steps or a specifically crafted failing test case.

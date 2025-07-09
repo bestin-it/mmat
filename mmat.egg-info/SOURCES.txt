@@ -44,6 +44,7 @@ mmat/models/model.py
 mmat/models/reasoning_model.py
 mmat/models/vision_model.py
 mmat/orchestration/__init__.py
+mmat/orchestration/feedback_handler.py
 mmat/orchestration/orchestrator.py
 mmat/plan_builder/__init__.py
 mmat/plan_builder/plan_builder.py

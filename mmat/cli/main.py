@@ -104,6 +104,11 @@ def main():
         "--report",
         help="Optional: Path to the test report file (e.g., JSON) to use for context.",
     )
+    feedback_parser.add_argument(
+        "--config",
+        default="config/config.yaml", # Default config path
+        help="Path to the configuration file (YAML or JSON)",
+    )
 
     args = parser.parse_args()
 
