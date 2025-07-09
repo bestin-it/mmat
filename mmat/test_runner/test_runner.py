@@ -4,6 +4,7 @@ import os
 from mmat.driver.playwright_driver import PlaywrightDriver
 from mmat.config.config_manager import ConfigManager
 from mmat.test_steps.web_steps import NavigateStep, FillStep, ClickStep
+from mmat.test_steps.assertion_steps import AssertUrlStep, AssertElementVisibleStep # Import new assertion steps
 from mmat.test_steps.base_step import TestStep # Import BaseStep
 
 class TestRunner:
@@ -64,13 +65,24 @@ class TestRunner:
             print("[TestRunner] Error: Empty test plan provided.")
             return False
 
+        print(f"[TestRunner] Debug: Full test_plan: {test_plan}")
+
+        # Access the actual test plan content under the 'test_plan' key
+        actual_test_plan_content = test_plan.get('test_plan', {})
+        if not actual_test_plan_content:
+            print("[TestRunner] Error: 'test_plan' key not found in the loaded test plan.")
+            return False
+
         all_steps = []
-        test_suites = test_plan.get('test_suites', [])
+        test_suites = actual_test_plan_content.get('test_suites', [])
+        print(f"[TestRunner] Debug: test_suites found: {test_suites}")
 
         for suite in test_suites:
             test_cases = suite.get('test_cases', [])
+            print(f"[TestRunner] Debug: test_cases in suite '{suite.get('name')}': {test_cases}")
             for case in test_cases:
                 steps = case.get('steps', [])
+                print(f"[TestRunner] Debug: steps in test case '{case.get('name')}': {steps}")
                 all_steps.extend(steps)
 
         if not all_steps:
@@ -85,68 +97,96 @@ class TestRunner:
 
         print(f"[TestRunner] Executing test plan with {total_steps} steps, starting from step {start_step}.")
 
+        # Get browser configuration
+        browser_config = self.config_manager.get('environments.browser', {})
+        # Access parameters from the nested 'config' key as per test-mmat/config/config.yaml
+        browser_params = browser_config.get('config', {})
+        browser_type = browser_params.get('browser_type', 'chromium')
+        headless = browser_params.get('headless', True)
+        base_url = browser_params.get('baseUrl', None)
+
+        # Launch browser before executing steps
+        self.driver.launch_browser(browser_type=browser_type, headless=headless)
+        if not self.driver.page:
+            print("[TestRunner] Error: Failed to launch browser. Cannot execute test plan.")
+            return False
+
         # Prepare test data if available (assuming it's at the top level or passed per test case)
         test_data = test_plan.get('test_data', {}) # This might need refinement if data is per test case
 
-        for i in range(start_step - 1, total_steps):
-            step_data = all_steps[i]
-            step_number = i + 1
-            step_name = step_data.get('description', f'Step {step_number}') # Use 'description' for step name
-            step_type = step_data.get('action') # Use 'action' for step type
+        try:
+            for i in range(start_step - 1, total_steps):
+                step_data = all_steps[i]
+                step_number = i + 1
+                step_name = step_data.get('description', f'Step {step_number}') # Use 'description' for step name
+                step_type = step_data.get('action') # Use 'action' for step type
 
-            print(f"[TestRunner] Executing step {step_number}/{total_steps}: {step_name} (Type: {step_type})")
+                print(f"[TestRunner] Executing step {step_number}/{total_steps}: {step_name} (Type: {step_type})")
 
-            try:
-                # Instantiate the correct step class based on type
-                step_instance: TestStep | None = None
-                if step_type == 'web.navigate':
-                    step_instance = NavigateStep(step_data, self.driver)
-                elif step_type == 'web.fill':
-                    step_instance = FillStep(step_data, self.driver)
-                elif step_type == 'web.click':
-                    step_instance = ClickStep(step_data, self.driver)
-                # Add other step types here as they are implemented (e.g., visual.click, api.call)
+                # For navigate steps, prepend base_url if target is relative
+                if step_type == 'navigate' and base_url and step_data.get('target') and not step_data['target'].startswith(('http://', 'https://', 'file://')):
+                    step_data['url'] = f"{base_url}{step_data['target']}"
                 else:
-                    print(f"[TestRunner] Warning: Unknown step type '{step_type}'. Skipping step.")
-                    continue # Skip unknown step types
+                    step_data['url'] = step_data.get('target') # Ensure 'url' key is set for NavigateStep
 
-                if step_instance:
-                    success = step_instance.execute()
-                    if success:
-                        print(f"[TestRunner] Step {step_number} '{step_name}' completed successfully. ✔️")
+                try:
+                    # Instantiate the correct step class based on type
+                    step_instance: TestStep | None = None
+                    if step_type == 'navigate':
+                        step_instance = NavigateStep(step_data, self.driver)
+                    elif step_type == 'fill':
+                        step_instance = FillStep(step_data, self.driver)
+                    elif step_type == 'click':
+                        step_instance = ClickStep(step_data, self.driver)
+                    elif step_type == 'assert_url':
+                        step_instance = AssertUrlStep(step_data, self.driver)
+                    elif step_type == 'assert_element_visible':
+                        step_instance = AssertElementVisibleStep(step_data, self.driver)
+                    # Add other step types here as they are implemented (e.g., visual.click, api.call)
                     else:
-                        print(f"[TestRunner] Step {step_number} '{step_name}' failed. ❌")
-                        # Depending on requirements, you might stop execution on failure
-                        # For now, let's continue to the next step
-                        # return False # Uncomment to stop on first failure
+                        print(f"[TestRunner] Warning: Unknown step type '{step_type}'. Skipping step.")
+                        continue # Skip unknown step types
 
-            except Exception as e:
-                print(f"[TestRunner] An error occurred during execution of step {step_number} '{step_name}': {e} ❌")
-                        # return False # Uncomment to stop on first exception
+                    if step_instance:
+                        success = step_instance.execute()
+                        if success:
+                            print(f"[TestRunner] Step {step_number} '{step_name}' completed successfully. ✔️")
+                        else:
+                            print(f"[TestRunner] Step {step_number} '{step_name}' failed. ❌")
+                            # Depending on requirements, you might stop execution on failure
+                            # For now, let's continue to the next step
+                            # return False # Uncomment to stop on first failure
 
-            # After executing a step that might change the page, take a screenshot and analyze it
-            # TODO: Refine which steps trigger a screenshot (e.g., navigate, click, fill)
-            # TODO: Determine screenshot naming convention and storage location
-            screenshot_path = f"output/screenshots/step_{step_number}.png"
-            try:
-                # Ensure the screenshot directory exists
-                os.makedirs(os.path.dirname(screenshot_path), exist_ok=True)
-                # Use the correct method name from PlaywrightDriver
-                self.driver.screenshot(screenshot_path)
-                print(f"[TestRunner] Screenshot taken: {screenshot_path}")
+                except Exception as e:
+                    print(f"[TestRunner] An error occurred during execution of step {step_number} '{step_name}': {e} ❌")
+                            # return False # Uncomment to stop on first exception
 
-                if self.screenshot_analyzer:
-                    print(f"[TestRunner] Analyzing screenshot for step {step_number}...")
-                    analysis_result = self.screenshot_analyzer.analyze_screenshot(screenshot_path)
-                    # TODO: Process analysis_result (e.g., update graph)
-                    print(f"[TestRunner] Screenshot analysis for step {step_number} complete.")
-                else:
-                    print("[TestRunner] Screenshot Analyzer not available. Skipping analysis.")
+                # After executing a step that might change the page, take a screenshot and analyze it
+                # TODO: Refine which steps trigger a screenshot (e.g., navigate, click, fill)
+                # TODO: Determine screenshot naming convention and storage location
+                screenshot_path = f"output/screenshots/step_{step_number}.png"
+                try:
+                    # Ensure the screenshot directory exists
+                    os.makedirs(os.path.dirname(screenshot_path), exist_ok=True)
+                    # Use the correct method name from PlaywrightDriver
+                    self.driver.screenshot(screenshot_path)
+                    print(f"[TestRunner] Screenshot taken: {screenshot_path}")
 
-            except Exception as e:
-                print(f"[TestRunner] Error taking or analyzing screenshot for step {step_number}: {e}")
-                # Continue execution even if screenshot/analysis fails
+                    if self.screenshot_analyzer:
+                        print(f"[TestRunner] Analyzing screenshot for step {step_number}...")
+                        analysis_result = self.screenshot_analyzer.analyze_screenshot(screenshot_path)
+                        # TODO: Process analysis_result (e.g., update graph)
+                        print(f"[TestRunner] Screenshot analysis for step {step_number} complete.")
+                    else:
+                        print("[TestRunner] Screenshot Analyzer not available. Skipping analysis.")
 
+                except Exception as e:
+                    print(f"[TestRunner] Error taking or analyzing screenshot for step {step_number}: {e}")
+                    # Continue execution even if screenshot/analysis fails
+
+        finally:
+            # Close browser after all steps are executed or an error occurs
+            self.driver.close_browser()
 
         print("[TestRunner] Test plan execution finished.")
         return True # Indicate that execution finished (not necessarily all steps succeeded)

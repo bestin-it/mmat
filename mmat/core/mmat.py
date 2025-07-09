@@ -33,12 +33,7 @@ class MMAT:
         # based on the loaded configuration.
         print(f"[MMAT] Initialized with config from {config_path}")
 
-        # Initialize core components
-        self.playwright_driver = PlaywrightDriver(self.config) # Initialize Playwright Driver
-        self.test_runner = TestRunner(self.playwright_driver, self.config_manager) # Initialize Test Runner with driver and config_manager
-
-        # Initialize models based on configuration
-        # Initialize models based on configuration
+        # Initialize models based on configuration (must happen before TestRunner and ScreenshotAnalyzer)
         self.reasoning_model = None
         self.vision_model = None
         models_config = self.config.get('models', {})
@@ -122,6 +117,10 @@ class MMAT:
             self.screenshot_analyzer = None
             print("[MMAT] Warning: Vision model or Graph API not initialized. Screenshot analysis will be unavailable.")
 
+        # Initialize core components that depend on models/analyzers
+        self.playwright_driver = PlaywrightDriver(self.config) # Initialize Playwright Driver
+        # Initialize Test Runner with driver, config_manager, and screenshot_analyzer
+        self.test_runner = TestRunner(self.playwright_driver, self.config_manager, self.screenshot_analyzer)
 
         # Placeholder for other module instances
         self.html_analyzer = None # Initialize HTML Analyzer
@@ -357,124 +356,164 @@ class MMAT:
             print(f"[MMAT] Created subdirectories.")
 
             # Create example functional description
-            functional_description_content = """# User Login Feature
+            functional_description_content = """# Comment Submission Feature
 
 ## Description
-This feature allows users to log in to the application using their username and password.
+This feature allows users to leave comments on articles.
 
 ## Requirements
-- Users must be able to enter their username and password.
-- Upon successful login with valid credentials, the user should be redirected to the dashboard.
-- If the user provides invalid credentials, an error message should be displayed.
-- There should be a "Forgot Password" link.
+- Users must be able to enter a comment, name, and email.
+- Optionally, users can provide a website URL.
+- Upon successful submission, a confirmation message should be displayed.
+- If required fields are missing, an error message should be displayed.
 
 ## Scenarios
-- **Successful Login:**
-  - Given the user is on the login page
-  - When they enter valid username and password
-  - And click the login button
-  - Then they should be redirected to the dashboard.
+- **Successful Comment Submission:**
+  - Given the user is on the comment page
+  - When they enter a comment, name, and email
+  - And click the "Send Comment" button
+  - Then a success message should be displayed.
 
-- **Failed Login (Invalid Password):**
-  - Given the user is on the login page
-  - When they enter a valid username and an invalid password
-  - And click the login button
-  - Then an error message should be displayed.
+- **Failed Comment Submission (Missing Email):**
+  - Given the user is on the comment page
+  - When they enter a comment and name, but no email
+  - And click the "Send Comment" button
+  - Then an error message indicating missing fields should be displayed.
+
+- **Failed Comment Submission (Empty Comment):**
+  - Given the user is on the comment page
+  - When they enter a name and email, but no comment
+  - And click the "Send Comment" button
+  - Then an error message indicating missing comment should be displayed.
 """
-            with open(os.path.join(project_dir, "functional_descriptions", "user_login.md"), "w") as f:
+            with open(os.path.join(project_dir, "functional_descriptions", "comment_submission.md"), "w") as f:
                 f.write(functional_description_content)
-            print(f"[MMAT] Created example functional description: {os.path.join(project_dir, 'functional_descriptions', 'user_login.md')}")
+            print(f"[MMAT] Created example functional description: {os.path.join(project_dir, 'functional_descriptions', 'comment_submission.md')}")
 
             # Create example test plan
             test_plan_content = """test_plan:
-  name: User Login Tests
-  description: Tests for the user login feature
+  name: Comment Submission Tests
+  description: Tests for the comment submission feature
   test_suites:
-    - name: Standard Login
-      description: Test standard user login scenarios
+    - name: Standard Comment Submission
+      description: Test standard comment submission scenarios
       test_cases:
-        - name: Successful Login with Valid Credentials
-          description: Verify a user can log in successfully
+        - name: Successful Comment Submission
+          description: Verify a user can submit a comment successfully
           steps:
             - action: navigate
-              target: /login
-              description: Go to the login page
+              target: / # Base URL is set in config.yaml
+              description: Go to the comment page
             - action: fill
-              selector: '#username'
-              value: testuser
-              description: Enter valid username
+              selector: '#comment' # Assuming ID for comment textarea
+              value: This is a test comment.
+              description: Enter comment text
             - action: fill
-              selector: '#password'
-              value: password123
-              description: Enter valid password
+              selector: '#author' # Assuming ID for name input
+              value: Test User
+              description: Enter name
+            - action: fill
+              selector: '#email' # Assuming ID for email input
+              value: test@example.com
+              description: Enter email
             - action: click
-              selector: '#login-button'
-              description: Click the login button
-            - action: assert_url
-              expected: /dashboard
-              description: Verify redirection to dashboard
-        - name: Failed Login with Invalid Password
-          description: Verify login fails with incorrect password
+              selector: '#submit' # Assuming ID for submit button
+              description: Click the "Send Comment" button
+            - action: assert_element_visible
+              selector: '.comment-success-message' # Assuming class for success message
+              description: Verify success message is displayed
+
+        - name: Failed Comment Submission (Missing Email)
+          description: Verify comment submission fails without email
           steps:
             - action: navigate
-              target: /login
-              description: Go to the login page
+              target: /
+              description: Go to the comment page
             - action: fill
-              selector: '#username'
-              value: testuser
-              description: Enter valid username
+              selector: '#comment'
+              value: This is a test comment without email.
+              description: Enter comment text
             - action: fill
-              selector: '#password'
-              value: wrongpassword
-              description: Enter invalid password
+              selector: '#author'
+              value: Test User
+              description: Enter name
             - action: click
-              selector: '#login-button'
-              description: Click the login button
+              selector: '#submit'
+              description: Click the "Send Comment" button
+            - action: assert_element_visible
+              selector: '.error-message' # Assuming class for error message
+              description: Verify error message is displayed
+
+        - name: Failed Comment Submission (Empty Comment)
+          description: Verify comment submission fails with empty comment
+          steps:
+            - action: navigate
+              target: /
+              description: Go to the comment page
+            - action: fill
+              selector: '#author'
+              value: Test User
+              description: Enter name
+            - action: fill
+              selector: '#email'
+              value: test@example.com
+              description: Enter email
+            - action: click
+              selector: '#submit'
+              description: Click the "Send Comment" button
             - action: assert_element_visible
               selector: '.error-message'
               description: Verify error message is displayed
 """
-            with open(os.path.join(project_dir, "tests", "functional", "user_login_plan.yaml"), "w") as f:
+            with open(os.path.join(project_dir, "tests", "functional", "comment_submission_plan.yaml"), "w") as f:
                 f.write(test_plan_content)
-            print(f"[MMAT] Created example test plan: {os.path.join(project_dir, 'tests', 'functional', 'user_login_plan.yaml')}")
+            print(f"[MMAT] Created example test plan: {os.path.join(project_dir, 'tests', 'functional', 'comment_submission_plan.yaml')}")
 
             # Create example E2E test
             e2e_test_content = """import pytest
-from playwright.sync_api import Page, sync_playwright
+from playwright.sync_api import Page, expect
 
-# Test Suite: Standard Login
-# Description: Test standard user login scenarios
+# Test Suite: Standard Comment Submission
+# Description: Test standard comment submission scenarios
 
-# Test Case: Successful Login with Valid Credentials
-# Description: Verify a user can log in successfully
-def test_successful_login(page: Page):
-    page.goto("/login")
-    page.fill('#username', 'testuser')
-    page.fill('#password', 'password123')
-    page.click('#login-button')
-    # Verify redirection to dashboard
-    assert page.url.endswith('/dashboard')
+# Test Case: Successful Comment Submission
+# Description: Verify a user can submit a comment successfully
+def test_successful_comment_submission(page: Page):
+    page.goto("/")
+    page.fill('#comment', 'This is a test comment.')
+    page.fill('#author', 'Test User')
+    page.fill('#email', 'test@example.com')
+    page.click('#submit')
+    expect(page.locator('.comment-success-message')).to_be_visible()
 
-# Test Case: Failed Login with Invalid Password
-# Description: Verify login fails with incorrect password
-def test_failed_login_invalid_password(page: Page):
-    page.goto("/login")
-    page.fill('#username', 'testuser')
-    page.fill('#password', 'wrongpassword')
-    page.click('#login-button')
-    # Verify error message is displayed
-    assert page.is_visible('.error-message')
+# Test Case: Failed Comment Submission (Missing Email)
+# Description: Verify comment submission fails without email
+def test_failed_comment_submission_missing_email(page: Page):
+    page.goto("/")
+    page.fill('#comment', 'This is a test comment without email.')
+    page.fill('#author', 'Test User')
+    page.click('#submit')
+    expect(page.locator('.error-message')).to_be_visible()
+
+# Test Case: Failed Comment Submission (Empty Comment)
+# Description: Verify comment submission fails with empty comment
+def test_failed_comment_submission_empty_comment(page: Page):
+    page.goto("/")
+    page.fill('#author', 'Test User')
+    page.fill('#email', 'test@example.com')
+    page.click('#submit')
+    expect(page.locator('.error-message')).to_be_visible()
 """
-            with open(os.path.join(project_dir, "tests", "e2e", "test_user_login.py"), "w") as f:
+            with open(os.path.join(project_dir, "tests", "e2e", "test_comment_submission.py"), "w") as f:
                 f.write(e2e_test_content)
-            print(f"[MMAT] Created example E2E test: {os.path.join(project_dir, 'tests', 'e2e', 'test_user_login.py')}")
+            print(f"[MMAT] Created example E2E test: {os.path.join(project_dir, 'tests', 'e2e', 'test_comment_submission.py')}")
 
             # Create config.yaml with example content
             config_content = """environments:
   browser:
     type: puppeteer
     config:
-      baseUrl: http://localhost:3000 # Replace with your application’s base URL
+      baseUrl: https://bestin-it.com/photo-into-embroidery-art-interactive-tool-converter/ # Target URL for comment tests
       headless: true # Set to false to see the browser
       defaultTimeout: 10000 # Milliseconds
 

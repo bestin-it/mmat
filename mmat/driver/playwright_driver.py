@@ -128,6 +128,41 @@ class PlaywrightDriver:
             self.browser = None
             self.page = None
         else:
-            print("[PlaywrightDriver] No browser instance to close.")
+            print("[PlaywrightDriver] Error: No page available. Launch browser first.")
+
+    def get_current_url(self) -> str:
+        """
+        Gets the current URL of the page.
+
+        Returns:
+            str: The current URL, or an empty string if no page is available.
+        """
+        if self.page:
+            return self.page.url
+        else:
+            print("[PlaywrightDriver] Error: No page available to get URL from.")
+            return ""
+
+    def is_element_visible(self, selector: str) -> bool:
+        """
+        Checks if an element matching the selector is visible on the page.
+
+        Args:
+            selector (str): CSS selector for the element.
+
+        Returns:
+            bool: True if the element is visible, False otherwise.
+        """
+        if self.page:
+            try:
+                # Playwright's is_visible() checks if the element is attached to the DOM,
+                # has a bounding box, and is not hidden by CSS.
+                return self.page.locator(selector).is_visible()
+            except Exception as e:
+                print(f"[PlaywrightDriver] Error checking visibility for selector '{selector}': {e}")
+                return False
+        else:
+            print("[PlaywrightDriver] Error: No page available to check element visibility.")
+            return False
 
     # Add other methods for browser interaction (e.g., keyboard input, waiting for elements, etc.)
