@@ -21,7 +21,7 @@ Based on the `README.md` and `matt-functional-description.md` files, here is an 
 
 *   Advanced model-based capabilities, including:
     *   Full test plan generation from descriptions using AI models (`mmat build`). - **DONE** (Implemented using `mmat generate` with reasoning model)
-    *   Visual analysis of screenshots via multimodal models.
+    *   Visual analysis of screenshots via multimodal models. - **DONE**
     *   Building and updating a local knowledge graph of elements and interactions.
     *   Autonomous exploration and knowledge gathering during test execution.
     *   Post-test knowledge analysis and reasoning.
