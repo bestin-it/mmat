@@ -15,7 +15,7 @@ class PlaywrightImporter(ast.NodeVisitor):
         self.current_test_case: Optional[TestCase] = None
         self.test_cases: List[TestCase] = []
 
-    def import_from_file(self, file_path: str) -> TestSuite:
+    def import_from_file(self, file_path: str) -> Dict[str, Any]: # Changed return type to Dict
         """
         Reads a Playwright Python file, parses it, and returns an MMAT TestSuite.
         """
@@ -29,15 +29,26 @@ class PlaywrightImporter(ast.NodeVisitor):
         self.visit(node)
 
         self.test_suite.test_cases = self.test_cases
-        return self.test_suite
 
-    # AST Node Visitor Methods (to be implemented)
+        # Construct the full test plan structure
+        test_plan_dict = {
+            "test_plan": {
+                "name": f"Imported Test Plan for: {suite_name}",
+                "description": f"Test plan imported from Playwright script: {file_path}",
+                "test_suites": [
+                    self.test_suite.to_dict() # Convert the TestSuite object to dictionary
+                ]
+            }
+        }
+        return test_plan_dict
+
     def visit_FunctionDef(self, node):
         """Visit function definitions - potentially new test cases."""
-        # Placeholder: Identify test functions and create TestCase
         if node.name.startswith('test_'): # Simple heuristic for test functions
              print(f"Found potential test case function: {node.name}")
-             self.current_test_case = TestCase(name=node.name, steps=[])
+             # Extract description from comments or docstrings if available
+             description = ast.get_docstring(node)
+             self.current_test_case = TestCase(name=node.name, description=description, steps=[])
              self.generic_visit(node) # Visit nodes within the function
              if self.current_test_case and self.current_test_case.steps:
                  self.test_cases.append(self.current_test_case)
@@ -49,76 +60,111 @@ class PlaywrightImporter(ast.NodeVisitor):
         """Visit function calls - potentially test steps."""
         if self.current_test_case:
             step_action = None
-            step_target = None
-            step_args: Dict[str, Any] = {}
+            step_parameters: Dict[str, Any] = {}
+            step_description = None
 
-            # Identify Playwright method calls (e.g., page.click, page.locator().fill)
-            if isinstance(node.func, ast.Attribute):
-                # Handle calls like page.click(...) or locator.fill(...)
-                if isinstance(node.func.value, (ast.Name, ast.Call, ast.Attribute)): # Check if the object is likely a page or locator
-                    step_action = node.func.attr
-                    step_target, step_args = self._parse_call_arguments(node.args, node.keywords)
-                    print(f"Found potential step call: {step_action} with target {step_target} and args {step_args}")
+            # Handle calls like page.goto, page.fill, page.click
+            if isinstance(node.func, ast.Attribute) and isinstance(node.func.value, ast.Name) and node.func.value.id == 'page':
+                method_name = node.func.attr
+                pos_args, kw_args = self._parse_call_arguments(node.args, node.keywords)
 
-            # Add step if a Playwright action was identified
+                if method_name == 'goto':
+                    step_action = 'navigate'
+                    if pos_args:
+                        step_parameters['url'] = pos_args[0]
+                    step_description = f"Go to URL: {step_parameters.get('url', '')}"
+                elif method_name == 'fill':
+                    step_action = 'fill'
+                    if pos_args:
+                        step_parameters['selector'] = pos_args[0]
+                        if len(pos_args) > 1:
+                            step_parameters['text'] = pos_args[1] # Playwright fill takes selector, value
+                    step_parameters.update(kw_args) # Add any keyword args
+                    step_description = f"Fill '{step_parameters.get('selector', '')}' with '{step_parameters.get('text', '')}'"
+                elif method_name == 'click':
+                    step_action = 'click'
+                    if pos_args:
+                        step_parameters['selector'] = pos_args[0]
+                    step_parameters.update(kw_args)
+                    step_description = f"Click '{step_parameters.get('selector', '')}'"
+                # Add more page actions as needed
+
+            # Handle expect(locator).to_be_visible() pattern
+            elif isinstance(node.func, ast.Attribute) and node.func.attr == 'to_be_visible':
+                # Check if the value of to_be_visible is an expect call
+                if isinstance(node.func.value, ast.Call) and \
+                   isinstance(node.func.value.func, ast.Name) and node.func.value.func.id == 'expect':
+                    
+                    # Get the argument of the expect call, which should be the locator call
+                    if node.func.value.args and isinstance(node.func.value.args[0], ast.Call):
+                        locator_call = node.func.value.args[0]
+                        if isinstance(locator_call.func, ast.Attribute) and \
+                           isinstance(locator_call.func.value, ast.Name) and locator_call.func.value.id == 'page' and \
+                           locator_call.func.attr == 'locator':
+                            
+                            locator_pos_args, locator_kw_args = self._parse_call_arguments(locator_call.args, locator_call.keywords)
+                            
+                            step_action = 'assert_element_visible'
+                            if locator_pos_args:
+                                step_parameters['selector'] = locator_pos_args[0]
+                            step_parameters.update(locator_kw_args)
+                            step_description = f"Assert element '{step_parameters.get('selector', '')}' is visible"
+                # Add more expect assertions as needed (e.g., to_have_url)
+            elif isinstance(node.func, ast.Attribute) and node.func.attr == 'to_have_url':
+                if isinstance(node.func.value, ast.Name) and node.func.value.id == 'page':
+                    pos_args, kw_args = self._parse_call_arguments(node.args, node.keywords)
+                    step_action = 'assert_url'
+                    if pos_args:
+                        step_parameters['expected'] = pos_args[0]
+                    step_parameters.update(kw_args)
+                    step_description = f"Assert URL is '{step_parameters.get('expected', '')}'"
+
+
             if step_action:
-                # Simple mapping: action name from Playwright call, target from first arg (if selector), args from keywords
                 step = TestStep(
                     action=step_action,
-                    target=step_target,
-                    args=step_args,
-                    description=f"Perform '{step_action}' action" # Basic description
+                    # MMAT TestStep uses 'args' for parameters, not 'target' directly for selectors
+                    # The 'target' field is more for visual targets or complex objects.
+                    # For Playwright selectors, they are part of 'parameters' (which maps to 'args' in TestStep)
+                    args=step_parameters,
+                    description=step_description
                 )
                 self.current_test_case.add_step(step)
 
         self.generic_visit(node) # Continue visiting arguments and other parts of the call
 
-    def _parse_call_arguments(self, args: List[ast.expr], keywords: List[ast.keyword]) -> (Optional[Union[str, Dict[str, Any]]], Dict[str, Any]):
+    def _parse_call_arguments(self, args: List[ast.expr], keywords: List[ast.keyword]) -> (List[Any], Dict[str, Any]):
         """
-        Parses AST call arguments and keywords into target and args dictionary.
-        Assumes the first positional argument is the target (e.g., selector).
-        Keyword arguments are added to the args dictionary.
+        Parses AST call arguments and keywords into a list of positional arguments
+        and a dictionary of keyword arguments.
         """
-        target = None
-        parsed_args: Dict[str, Any] = {}
+        parsed_pos_args: List[Any] = []
+        parsed_kw_args: Dict[str, Any] = {}
 
         # Parse positional arguments
-        if args:
-            # Assume the first positional argument is the target (e.g., selector string)
-            # Need more robust logic to handle different types of targets (e.g., visual locators)
-            first_arg = args[0]
-            if isinstance(first_arg, ast.Constant) and isinstance(first_arg.value, str):
-                target = first_arg.value
-            # Add other positional arguments to args dictionary if needed, or handle specific actions
+        for arg in args:
+            try:
+                # Using literal_eval is safer for simple constants (strings, numbers, booleans, None)
+                value = ast.literal_eval(arg)
+                parsed_pos_args.append(value)
+            except (ValueError, SyntaxError):
+                # If not a literal, try to get the ID for Name nodes (variables)
+                if isinstance(arg, ast.Name):
+                    parsed_pos_args.append(arg.id)
+                else:
+                    # Fallback for other complex expressions
+                    parsed_pos_args.append(f"<{ast.dump(arg)}>") # Placeholder representation
 
         # Parse keyword arguments
         for keyword in keywords:
             if keyword.arg: # Ensure argument name exists
-                # Attempt to evaluate the value of the keyword argument
                 try:
-                    # Using literal_eval is safer than eval for simple constants
                     value = ast.literal_eval(keyword.value)
-                    parsed_args[keyword.arg] = value
+                    parsed_kw_args[keyword.arg] = value
                 except (ValueError, SyntaxError):
-                    # Handle cases where the value is not a simple constant (e.g., a variable)
-                    # For now, represent as a string or placeholder
-                    parsed_args[keyword.arg] = f"<{ast.dump(keyword.value)}>" # Placeholder representation
+                    if isinstance(keyword.value, ast.Name):
+                        parsed_kw_args[keyword.arg] = keyword.value.id
+                    else:
+                        parsed_kw_args[keyword.arg] = f"<{ast.dump(keyword.value)}>"
 
-        return target, parsed_args
-
-# Example Usage (for testing during development)
-# if __name__ == "__main__":
-#     importer = PlaywrightImporter()
-#     # Replace with a path to a real Playwright test file for testing
-#     test_file_path = "path/to/your/playwright_test.py"
-#     try:
-#         test_suite = importer.import_from_file(test_file_path)
-#         print(f"Successfully imported Test Suite: {test_suite.name}")
-#         for tc in test_suite.test_cases:
-#             print(f"- TestCase: {tc.name} with {len(tc.steps)} steps")
-#             # for step in tc.steps:
-#             #     print(f"  - Step: {step.action} target={step.target} args={step.args}")
-#     except FileNotFoundError:
-#         print(f"Error: File not found at {test_file_path}")
-#     except Exception as e:
-#         print(f"An error occurred during import: {e}")
+        return parsed_pos_args, parsed_kw_args

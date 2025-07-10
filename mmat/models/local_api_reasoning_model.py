@@ -60,7 +60,7 @@ class LocalApiReasoningModel(ReasoningModel):
                 json={
                     "model": self.model_name,
                     "messages": prompt_messages,
-                    "max_tokens": 1000, # Adjust as needed
+                    "max_tokens": 2000, # Increased to allow for longer responses
                     "temperature": 0.7, # Adjust as needed
                     # Add other parameters if required by the API
                 }
@@ -87,7 +87,53 @@ class LocalApiReasoningModel(ReasoningModel):
             print(f"[LocalApiReasoningModel] An unexpected error occurred during LLM interaction: {e}")
             import traceback
             traceback.print_exc() # Print traceback for debugging
-            return None
+            return []
+
+    def generate_text(self, prompt_messages: List[Dict[str, str]]) -> str: # Changed prompt to prompt_messages
+        """
+        Generates text based on a given prompt using the reasoning model.
+        This is a generic text generation method.
+
+        Args:
+            prompt_messages: A list of message dictionaries for the LLM (e.g., [{"role": "user", "content": "..."}]).
+
+        Returns:
+            The generated text.
+        """
+        print(f"[LocalApiReasoningModel] Generating text for prompt (first message content first 100 chars): '{prompt_messages[0]['content'][:100]}'")
+
+        try:
+            response = requests.post(
+                f"{self.api_url}/chat/completions",
+                json={
+                    "model": self.model_name,
+                    "messages": prompt_messages, # Pass the list of messages
+                    "max_tokens": 1000,
+                    "temperature": 0.7,
+                }
+            )
+            response.raise_for_status()
+
+            api_response = response.json()
+            print(f"[LocalApiReasoningModel] Received API response for text generation.")
+
+            # Extract content from the response
+            choices = api_response.get("choices", [])
+            if choices and choices[0].get("message"):
+                content = choices[0]["message"].get("content", "")
+                return content.strip()
+            else:
+                print("[LocalApiReasoningModel] No content found in LLM response for text generation.")
+                return ""
+
+        except requests.exceptions.RequestException as e:
+            print(f"[LocalApiReasoningModel] Error calling LLM API for text generation: {e}")
+            return f"Error: Could not generate text from LLM: {e}"
+        except Exception as e:
+            print(f"[LocalApiReasoningModel] An unexpected error occurred during generic text generation: {e}")
+            import traceback
+            traceback.print_exc()
+            return f"Error: An unexpected error occurred: {e}"
 
     def identify_element_by_structure(self, dom_structure: str, description: str) -> Dict[str, Any]:
         """

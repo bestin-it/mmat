@@ -245,21 +245,26 @@ class MMAT:
             try:
                 # Load the test plan
                 # Assuming PlanBuilder.build_from_file is implemented and works
-                test_suite = self.plan_builder.build_from_file(test_plan_path)
+                test_plan = self.plan_builder.load_plan(test_plan_path)
 
                 # Instantiate DescriptionGenerator and generate description
                 generator = DescriptionGenerator(self.reasoning_model)
-                description = generator.generate_description(test_suite)
+                description = generator.generate_description(test_plan) # Changed test_suite to test_plan
 
                 if output_path:
                     # Save description to file
                     output_dir = os.path.dirname(output_path)
+                    print(f"[MMAT] Debug: Describe Output directory: {output_dir}") # Debug print
                     if output_dir and not os.path.exists(output_dir):
                         os.makedirs(output_dir)
+                        print(f"[MMAT] Debug: Describe Created output directory: {output_dir}") # Debug print
 
                     with open(output_path, 'w', encoding='utf-8') as f:
+                        print(f"[MMAT] Debug: Describe Attempting to write to file: {output_path}") # Debug print
+                        print(f"[MMAT] Debug: Describe Content to write (first 100 chars): {description[:100]}") # Debug print content
                         f.write(description)
                     print(f"[MMAT] Functional description successfully generated and saved to {output_path}")
+                    print(f"[MMAT] Debug: Describe Finished writing to file: {output_path}") # Debug print
                 else:
                     # Print description to stdout
                     print("[MMAT] Generated Functional Description:")
@@ -364,28 +369,29 @@ class MMAT:
                 from mmat.importer.playwright_importer import PlaywrightImporter
 
                 importer = PlaywrightImporter()
-                test_suite = importer.import_from_file(input_file_path)
-
-                # Convert TestSuite to dictionary
-                test_suite_dict = test_suite.to_dict()
+                test_plan_dict = importer.import_from_file(input_file_path) # This now directly returns the dict
 
                 if output_path:
                     # Save to file (YAML or JSON based on extension)
                     output_dir = os.path.dirname(output_path)
+                    print(f"[MMAT] Debug: Output directory: {output_dir}") # Debug print
                     if output_dir and not os.path.exists(output_dir):
                         os.makedirs(output_dir)
+                        print(f"[MMAT] Debug: Created output directory: {output_dir}") # Debug print
 
                     with open(output_path, 'w') as f:
+                        print(f"[MMAT] Debug: Attempting to write to file: {output_path}") # Debug print
                         if output_path.lower().endswith(('.yaml', '.yml')):
-                            yaml.dump(test_suite_dict, f, indent=2)
+                            yaml.dump(test_plan_dict, f, indent=2)
                             print(f"[MMAT] Test suite successfully imported and saved to YAML at {output_path}")
                         else: # Default to JSON
-                            json.dump(test_suite_dict, f, indent=2)
+                            json.dump(test_plan_dict, f, indent=2)
                             print(f"[MMAT] Test suite successfully imported and saved to JSON at {output_path}")
+                    print(f"[MMAT] Debug: Finished writing to file: {output_path}") # Debug print
                 else:
                     # Print to stdout (as YAML for readability)
                     print("[MMAT] Imported Test Suite (YAML format):")
-                    print(yaml.dump(test_suite_dict, indent=2))
+                    print(yaml.dump(test_plan_dict, indent=2))
 
             except Exception as e:
                 print(f"[MMAT] An error occurred during import: {e}")
@@ -644,43 +650,61 @@ This is an MMAT project.
         Returns:
             str: The generated Playwright Python code.
         """
-        code = """import asyncio
-from playwright.async_api import Playwright, async_playwright, expect
-
-async def run(playwright: Playwright) -> None:
-    browser = await playwright.chromium.launch()
-    context = await browser.new_context()
-    page = await context.new_page()
+        code = """import pytest
+from playwright.sync_api import Page, expect
 
 """
-        indent = "    " * 2 # Indentation for steps within the async function
+        # Assuming test_plan is structured with 'test_plan' -> 'test_suites' -> 'test_cases' -> 'steps'
+        test_plan_data = test_plan.get("test_plan", {})
+        test_suites = test_plan_data.get("test_suites", [])
 
-        for step in test_plan.get("steps", []):
-            step_type = step.get("type")
-            step_params = step.get("params", {})
+        for suite in test_suites:
+            suite_name = suite.get("name", "Unnamed Test Suite").replace(" ", "_").replace("-", "_")
+            suite_description = suite.get("description", "")
+            code += f"# Test Suite: {suite_name}\n"
+            if suite_description:
+                code += f"# Description: {suite_description}\n\n"
 
-            if step_type == "web.navigate":
-                url = step_params.get("url")
-                if url:
-                    code += f'{indent}await page.goto("{url}")\n'
-            elif step_type == "web.comment":
-                text = step_params.get("text")
-                if text:
-                    code += f'{indent}# {text}\n'
-            # Add more step type mappings here as needed (e.g., click, fill, expect)
-            else:
-                code += f'{indent}# WARNING: Unsupported step type: {step_type}\n'
+            for case in suite.get("test_cases", []):
+                case_name = case.get("name", "Unnamed Test Case").replace(" ", "_").replace("-", "_")
+                case_description = case.get("description", "")
+                code += f"# Test Case: {case_name}\n"
+                if case_description:
+                    code += f"# Description: {case_description}\n"
+                code += f"def test_{case_name.lower()}(page: Page):\n"
+                indent = "    " * 1 # Indentation for steps within the test function
 
-        code += """
-    # ---------------------
-    await context.close()
-    await browser.close()
+                for step in case.get("steps", []):
+                    action = step.get("action")
+                    parameters = step.get("parameters", {})
+                    description = step.get("description", "")
 
-async def main():
-    async with async_playwright() as playwright:
-        await run(playwright)
+                    if description:
+                        code += f'{indent}# {description}\n'
 
-if __name__ == "__main__":
-    asyncio.run(main())
-"""
+                    if action == "navigate":
+                        url = parameters.get("url")
+                        if url:
+                            code += f'{indent}page.goto("{url}")\n'
+                    elif action == "fill":
+                        selector = parameters.get("selector")
+                        value = parameters.get("text") # Changed from 'value' to 'text'
+                        if selector and value is not None:
+                            code += f'{indent}page.fill("{selector}", "{value}")\n'
+                    elif action == "click":
+                        selector = parameters.get("selector")
+                        if selector:
+                            code += f'{indent}page.click("{selector}")\n'
+                    elif action == "assert_element_visible":
+                        selector = parameters.get("selector")
+                        if selector:
+                            code += f'{indent}expect(page.locator("{selector}")).to_be_visible()\n'
+                    elif action == "assert_url":
+                        expected_url = parameters.get("expected")
+                        if expected_url:
+                            code += f'{indent}expect(page).to_have_url("{expected_url}")\n'
+                    else:
+                        code += f'{indent}# WARNING: Unsupported action: {action}\n'
+                code += "\n" # Add a newline after each test case
+
         return code

@@ -90,6 +90,22 @@ def main():
         help="Overwrite output file if it already exists",
     )
 
+    # Describe command
+    describe_parser = subparsers.add_parser("describe", help="Convert an MMAT test plan into a human-readable functional description")
+    describe_parser.add_argument(
+        "test_plan_path",
+        help="Path to the MMAT test plan file (YAML or JSON)",
+    )
+    describe_parser.add_argument(
+        "--output",
+        help="Optional output path for the generated functional description file (e.g., Markdown). If not provided, prints to stdout.",
+    )
+    describe_parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Overwrite output file if it already exists",
+    )
+
     # Feedback command
     feedback_parser = subparsers.add_parser("feedback", help="Provide feedback on a test run or specific test step")
     feedback_parser.add_argument(
