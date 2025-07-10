@@ -100,85 +100,117 @@ In this structure:
 
 Functional descriptions are the starting point for generating test plans using MMAT's `generate` command. These files describe the desired behavior of your application or specific features. They are typically written in a human-readable format like Markdown.
 
-Example: `functional_descriptions/login.md`
+Example: `functional_descriptions/comment_submission.md`
 
 ```markdown
-# User Login Feature
+# Comment Submission Feature
 
 ## Description
-This feature allows users to log in to the application using their username and password.
+This feature allows users to leave comments on articles.
 
 ## Requirements
-- Users must be able to enter their username and password.
-- Upon successful login with valid credentials, the user should be redirected to the dashboard.
-- If the user provides invalid credentials, an error message should be displayed.
-- There should be a "Forgot Password" link.
+- Users must be able to enter a comment, name, and email.
+- Optionally, users can provide a website URL.
+- Upon successful submission, a confirmation message should be displayed.
+- If required fields are missing, an error message should be displayed.
 
 ## Scenarios
-- **Successful Login:**
-  - Given the user is on the login page
-  - When they enter valid username and password
-  - And click the login button
-  - Then they should be redirected to the dashboard.
+- **Successful Comment Submission:**
+  - Given the user is on the comment page
+  - When they enter a comment, name, and email
+  - And click the "Send Comment" button
+  - Then a success message should be displayed.
 
-- **Failed Login (Invalid Password):**
-  - Given the user is on the login page
-  - When they enter a valid username and an invalid password
-  - And click the login button
-  - Then an error message should be displayed.
+- **Failed Comment Submission (Missing Email):**
+  - Given the user is on the comment page
+  - When they enter a comment and name, but no email
+  - And click the "Send Comment" button
+  - Then an error message indicating missing fields should be displayed.
+
+- **Failed Comment Submission (Empty Comment):**
+  - Given the user is on the comment page
+  - When they enter a name and email, but no comment
+  - And click the "Send Comment" button
+  - Then an error message indicating missing comment should be displayed.
 ```
 
 ### Functional Test Plan
 
 Functional tests in MMAT are defined in structured test plans, typically in YAML or JSON format. These plans outline the sequence of steps to perform a specific test case. They can be generated automatically from functional descriptions using the `mmat generate` command or written manually.
 
-Example: `tests/functional/login_test_plan.yaml` (Generated from the functional description above)
+Example: `tests/functional/comment_submission_plan.yaml` (Generated from the functional description above)
 
 ```yaml
 test_plan:
-  name: User Login Tests
-  description: Tests for the user login feature
+  name: Comment Submission Tests
+  description: Tests for the comment submission feature
   test_suites:
-    - name: Standard Login
-      description: Test standard user login scenarios
+    - name: Standard Comment Submission
+      description: Test standard comment submission scenarios
       test_cases:
-        - name: Successful Login with Valid Credentials
-          description: Verify a user can log in successfully
+        - name: Successful Comment Submission
+          description: Verify a user can submit a comment successfully
           steps:
             - action: navigate
-              target: /login
-              description: Go to the login page
+              target: / # Base URL is set in config.yaml
+              description: Go to the comment page
             - action: fill
-              selector: '#username'
-              value: testuser
-              description: Enter valid username
+              selector: '#comment' # Assuming ID for comment textarea
+              value: This is a test comment.
+              description: Enter comment text
             - action: fill
-              selector: '#password'
-              value: password123
-              description: Enter valid password
+              selector: '#author' # Assuming ID for name input
+              value: Test User
+              description: Enter name
+            - action: fill
+              selector: '#email' # Assuming ID for email input
+              value: test@example.com
+              description: Enter email
             - action: click
-              selector: '#login-button'
-              description: Click the login button
-            - action: assert_url
-              expected: /dashboard
-              description: Verify redirection to dashboard
-        - name: Failed Login with Invalid Password
-          description: Verify login fails with incorrect password
+              selector: '#submit' # Assuming ID for submit button
+              description: Click the "Send Comment" button
+            - action: assert_element_visible
+              selector: '.comment-success-message' # Assuming class for success message
+              description: Verify success message is displayed
+
+        - name: Failed Comment Submission (Missing Email)
+          description: Verify comment submission fails without email
           steps:
             - action: navigate
-              target: /login
-              description: Go to the login page
+              target: /
+              description: Go to the comment page
             - action: fill
-              selector: '#username'
-              value: testuser
-              description: Enter valid username
+              selector: '#comment'
+              value: This is a test comment without email.
+              description: Enter comment text
             - action: fill
-              selector: '#password'
-              value: wrongpassword
-              description: Enter invalid password
+              selector: '#author'
+              value: Test User
+              description: Enter name
             - action: click
-              selector: '#login-button'
-              description: Click the login button
+              selector: '#submit'
+              description: Click the "Send Comment" button
+            - action: assert_element_visible
+              selector: '.error-message' # Assuming class for error message
+              description: Verify error message is displayed
+
+        - name: Failed Comment Submission (Empty Comment)
+          description: Verify comment submission fails with empty comment
+          steps:
+            - action: navigate
+              target: /
+              description: Go to the comment page
+            - action: fill
+              selector: '#author'
+              value: Test User
+              description: Enter name
+            - action: fill
+              selector: '#email'
+              value: test@example.com
+              description: Enter email
+            - action: click
+              selector: '#submit'
+              description: Click the "Send Comment" button
             - action: assert_element_visible
               selector: '.error-message'
               description: Verify error message is displayed
@@ -188,34 +220,42 @@ test_plan:
 
 MMAT can export functional test plans into executable end-to-end test scripts for frameworks like Playwright. These exported scripts can be run independently of MMAT or used as a starting point for further test development. These files are typically stored in the `tests/e2e/` directory.
 
-Example: `tests/e2e/login_test.py` (Exported from the functional test plan above)
+Example: `tests/e2e/test_comment_submission.py` (Exported from the functional test plan above)
 
 ```python
 import pytest
-from playwright.sync_api import Page, sync_playwright
+from playwright.sync_api import Page, expect
 
-# Test Suite: Standard Login
-# Description: Test standard user login scenarios
+# Test Suite: Standard Comment Submission
+# Description: Test standard comment submission scenarios
 
-# Test Case: Successful Login with Valid Credentials
-# Description: Verify a user can log in successfully
-def test_successful_login(page: Page):
-    page.goto("/login")
-    page.fill('#username', 'testuser')
-    page.fill('#password', 'password123')
-    page.click('#login-button')
-    # Verify redirection to dashboard
-    assert page.url.endswith('/dashboard')
+# Test Case: Successful Comment Submission
+# Description: Verify a user can submit a comment successfully
+def test_successful_comment_submission(page: Page):
+    page.goto("/")
+    page.fill('#comment', 'This is a test comment.')
+    page.fill('#author', 'Test User')
+    page.fill('#email', 'test@example.com')
+    page.click('#submit')
+    expect(page.locator('.comment-success-message')).to_be_visible()
 
-# Test Case: Failed Login with Invalid Password
-# Description: Verify login fails with incorrect password
-def test_failed_login_invalid_password(page: Page):
-    page.goto("/login")
-    page.fill('#username', 'testuser')
-    page.fill('#password', 'wrongpassword')
-    page.click('#login-button')
-    # Verify error message is displayed
-    assert page.is_visible('.error-message')
+# Test Case: Failed Comment Submission (Missing Email)
+# Description: Verify comment submission fails without email
+def test_failed_comment_submission_missing_email(page: Page):
+    page.goto("/")
+    page.fill('#comment', 'This is a test comment without email.')
+    page.fill('#author', 'Test User')
+    page.click('#submit')
+    expect(page.locator('.error-message')).to_be_visible()
+
+# Test Case: Failed Comment Submission (Empty Comment)
+# Description: Verify comment submission fails with empty comment
+def test_failed_comment_submission_empty_comment(page: Page):
+    page.goto("/")
+    page.fill('#author', 'Test User')
+    page.fill('#email', 'test@example.com')
+    page.click('#submit')
+    expect(page.locator('.error-message')).to_be_visible()
 ```
 
 ### Configuration (config.yaml) and Models
@@ -356,10 +396,10 @@ mmat run <plan_identifier> [--step <step_number>] --config <config_file>
 **Example:**
 
 ```bash
-mmat run tests/functional/login_test_plan.yaml --config config/config.yaml
+mmat run tests/functional/comment_submission_plan.yaml --config config/config.yaml
 ```
 
-This will execute the test plan in `tests/functional/login_test_plan.yaml` with settings from `config/config.yaml`.
+This will execute the test plan in `tests/functional/comment_submission_plan.yaml` with settings from `config/config.yaml`.
 
 ### `mmat generate`
 
@@ -380,10 +420,10 @@ mmat generate --desc <description> --output <output_path> [--force]
 **Example:**
 
 ```bash
-mmat generate --desc functional_description.md --output tests/generated/auth_tests.yaml --force
+mmat generate --desc functional_descriptions/comment_submission.md --output tests/functional/comment_submission_plan.yaml --force
 ```
 
-This would generate a YAML test plan at `tests/generated/auth_tests.yaml` based on `functional_description.md`, using models defined in `config/config.yaml`.
+This would generate a YAML test plan at `tests/functional/comment_submission_plan.yaml` based on `functional_descriptions/comment_submission.md`, using models defined in `config/config.yaml`.
 
 ### `mmat export`
 
@@ -408,10 +448,10 @@ mmat export <test_plan_path> [--output <output_path>] [--force]
 **Example:**
 
 ```bash
-mmat export tests/functional/login_test_plan.yaml --output exported_tests/login_test.py
+mmat export tests/functional/comment_submission_plan.yaml --output tests/e2e/comment_submission_test.py
 ```
 
-This will export `tests/functional/login_test_plan.yaml` to a Playwright Python file named `login_test.py` in `exported_tests`.
+This will export `tests/functional/comment_submission_plan.yaml` to a Playwright Python file named `comment_submission_test.py` in `tests/e2e`.
 
 **Example of Generated Playwright Code (`exported_tests/login_test.py`):**
 
@@ -468,10 +508,10 @@ mmat import-e2e <input_file> [--output <output_path>] [--force]
 **Example:**
 
 ```bash
-mmat import-e2e tests/e2e/test_user_login.py --output tests/functional/imported_user_login_plan.yaml
+mmat import-e2e tests/e2e/test_comment_submission.py --output tests/functional/imported_comment_submission_plan.yaml
 ```
 
-This will import the Playwright script `tests/e2e/test_user_login.py` and save the resulting MMAT test plan to `tests/functional/imported_user_login_plan.yaml`.
+This will import the Playwright script `tests/e2e/test_comment_submission.py` and save the resulting MMAT test plan to `tests/functional/imported_comment_submission_plan.yaml`.
 
 ### `mmat describe`
 
@@ -498,15 +538,15 @@ mmat describe <test_plan_path> [--output <output_path>] [--force]
 **Example:**
 
 ```bash
-mmat describe tests/functional/login_test_plan.yaml --output functional_descriptions/login_description.md
+mmat describe tests/functional/comment_submission_plan.yaml --output functional_descriptions/comment_submission_description.md
 ```
 
-This will load the test plan from `tests/functional/login_test_plan.yaml` and save the generated functional description to `functional_descriptions/login_description.md`.
+This will load the test plan from `tests/functional/comment_submission_plan.yaml` and save the generated functional description to `functional_descriptions/comment_submission_description.md`.
 
 **Example (printing to stdout):**
 
 ```bash
-mmat describe tests/functional/login_test_plan.yaml
+mmat describe tests/functional/comment_submission_plan.yaml
 ```
 
 This will load the test plan and print the generated functional description directly to your terminal.
@@ -533,16 +573,16 @@ mmat list [--type <type>] [--path <path>]
 **Examples:**
 
 ```bash
-mmat list --type all --path .
+mmat list --type all --path test-mmat/my_mmat_project
 ```
 
-This will list all functional test plans and E2E scripts in the current directory and its subdirectories.
+This will list all functional test plans and E2E scripts in the `test-mmat/my_mmat_project` directory and its subdirectories.
 
 ```bash
-mmat list --type functional --path tests/functional
+mmat list --type functional --path test-mmat/my_mmat_project/tests/functional
 ```
 
-This will list only functional test plans in the `tests/functional` directory.
+This will list only functional test plans in the `test-mmat/my_mmat_project/tests/functional` directory.
 
 ### `mmat show`
 
@@ -564,10 +604,10 @@ mmat show <file_path>
 **Example:**
 
 ```bash
-mmat show tests/functional/login_test_plan.yaml
+mmat show tests/functional/comment_submission_plan.yaml
 ```
 
-This will display the content of `login_test_plan.yaml` in your terminal.
+This will display the content of `tests/functional/comment_submission_plan.yaml` in your terminal.
 
 ### `mmat feedback`
 
@@ -593,10 +633,10 @@ mmat feedback <test_plan_path> [--step <step_number>] [--report <report_path>] [
 **Example:**
 
 ```bash
-mmat feedback tests/functional/failed_test_plan.yaml --report reports/latest_run.json
+mmat feedback tests/functional/comment_submission_plan.yaml --report reports/comment_submission_report.json
 ```
 
-This will start a feedback session for `failed_test_plan.yaml`, using `latest_run.json` for context.
+This will start a feedback session for `comment_submission_plan.yaml`, using `comment_submission_report.json` for context.
 
 ## Contributing (Planned)
 
