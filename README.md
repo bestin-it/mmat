@@ -24,13 +24,13 @@ pip install git+https://github.com/bestin-it/mmat.git
 
 ### Setting up the 'mmat' Alias on Windows
 
-To set up the `mmat` alias on Windows, run the provided `setup.py` script from the project root (`c:/Projects/Matt`):
+To set up the `mmat` alias on Windows, navigate to the project root (`c:/Projects/Mmat`) and install the package in editable mode:
 
 ```bash
-python setup.py install
+pip install -e .
 ```
 
-This script creates the `mmat` alias, allowing you to run MMAT commands from any directory in your Windows terminal (Command Prompt or PowerShell).
+This command links the installed `mmat` package to your local source code, allowing you to run MMAT commands from any directory in your Windows terminal (Command Prompt or PowerShell) and ensuring that any changes you make to the source code are immediately reflected.
 
 Example usage:
 
@@ -98,7 +98,7 @@ In this structure:
 
 ### Functional Description
 
-Functional descriptions are the starting point for generating test plans using MMAT's `build` command. These files describe the desired behavior of your application or specific features. They are typically written in a human-readable format like Markdown.
+Functional descriptions are the starting point for generating test plans using MMAT's `generate` command. These files describe the desired behavior of your application or specific features. They are typically written in a human-readable format like Markdown.
 
 Example: `functional_descriptions/login.md`
 
@@ -130,7 +130,7 @@ This feature allows users to log in to the application using their username and 
 
 ### Functional Test Plan
 
-Functional tests in MMAT are defined in structured test plans, typically in YAML or JSON format. These plans outline the sequence of steps to perform a specific test case. They can be generated automatically from functional descriptions using the `mmat build` command or written manually.
+Functional tests in MMAT are defined in structured test plans, typically in YAML or JSON format. These plans outline the sequence of steps to perform a specific test case. They can be generated automatically from functional descriptions using the `mmat generate` command or written manually.
 
 Example: `tests/functional/login_test_plan.yaml` (Generated from the functional description above)
 
@@ -229,24 +229,24 @@ environments:
   browser:
     type: puppeteer
     config:
-      baseUrl: http://localhost:3000 # Replace with your application’s base URL
+      baseUrl: https://bestin-it.com/photo-into-embroidery-art-interactive-tool-converter/ # Target URL for comment tests
       headless: true # Set to false to see the browser
       defaultTimeout: 10000 # Milliseconds
 
 models:
   reasoning:
-    provider: local_api # Example: using a local API endpoint
+    provider: local_api # Using a local API endpoint (e.g., LM Studio)
     type: llm
     config:
-      endpoint: http://localhost:8000/v1
-      model_name: my-local-llm
+      endpoint: http://172.29.32.1:1234/v1 # LM Studio default API endpoint
+      model_name: mistralai/magistral-small # Example model for reasoning
 
-vision:
-    provider: local_ollama # Example: using Ollama
-    type: vision
-    config:
-      model_name: llava:7b
-      endpoint: http://localhost:11434/api/generate
+  vision:
+    provider: local_api # Using a local API endpoint (e.g., LM Studio)
+    type: vision_model # Changed type to match LocalApiVisionModel
+    parameters: # Changed to parameters to match LocalApiVisionModel
+      api_url: http://172.29.32.1:1234/v1 # LM Studio default API endpoint
+      model_name: mistralai/mistral-small-3.2 # Example model for vision
 
 reporting:
   - type: json
@@ -263,26 +263,27 @@ Example `models` section in `config/config.yaml`:
 ```yaml
 models:
   reasoning:
-    provider: local_api # Example: using a local API endpoint
+    provider: local_api # Using a local API endpoint (e.g., LM Studio)
     type: llm
     config:
-      endpoint: http://localhost:8000/v1
-      model_name: my-local-llm
+      endpoint: http://172.29.32.1:1234/v1
+      model_name: mistralai/magistral-small
 
   vision:
-    provider: local_ollama # Example: using Ollama
-    type: vision
-    config:
-      model_name: llava:7b
-      endpoint: http://localhost:11434/api/generate
+    provider: local_api # Using a local API endpoint (e.g., LM Studio)
+    type: vision_model
+    parameters:
+      api_url: http://172.29.32.1:1234/v1
+      model_name: mistralai/mistral-small-3.2
 
   # You can add configurations for other models or providers here
-  another_model:
-    provider: openai
-    type: llm
-    config:
-      model_name: gpt-4o
-      api_key: ${OPENAI_API_KEY} # Using environment variable
+  # For example, an OpenAI model:
+  # another_model:
+  #   provider: openai
+  #   type: llm
+  #   config:
+  #     model_name: gpt-4o
+  #     api_key: ${OPENAI_API_KEY} # Using environment variable
 ```
 
 Key parameters within a model configuration typically include:
@@ -326,16 +327,16 @@ The `graph/` module in MMAT is planned to handle internal representations and in
 
 Detailed setup for visualizing or interacting with these internal graph structures will be provided in future documentation. For standard test execution, you typically don’t need any extra graph setup beyond installing and configuring MMAT as described above.
 
-## Usage (Planned)
+## Usage
 
-MMAT provides a command-line interface (CLI) to interact with the framework, primarily through the `run` and `build` commands.
+MMAT provides a command-line interface (CLI) to interact with the framework.
 
 ### `mmat run`
 
 The `mmat run` command is used to execute a specified test plan. When you run a test plan, MMAT will:
 
 1.  Load configuration from the specified `--config` file.
-2.  Load the test plan (given by `<plan_identifier>` and `--plan-type`).
+2.  Load the test plan (given by `<plan_identifier>`).
 3.  Initialize environments and models as defined in the configuration.
 4.  Iterate through test suites and test cases in the test plan.
 5.  Execute each test step sequentially using the configured environment (e.g., a browser).
@@ -345,46 +346,41 @@ The `mmat run` command is used to execute a specified test plan. When you run a 
 **Syntax:**
 
 ```bash
-mmat run <plan_identifier> --plan-type <type> --config <config_file> [options]
+mmat run <plan_identifier> [--step <step_number>] --config <config_file>
 ```
 
 *   `<plan_identifier>`: Path to your test plan file (e.g., `tests/functional/login_test_plan.yaml`).
-*   `--plan-type <type>`: Format of the test plan (e.g., `yaml`, `json`).
+*   `--step <step_number>` (Optional): Step number to start execution from (1-based index).
 *   `--config <config_file>`: Path to your MMAT configuration file (e.g., `config/config.yaml`).
-*   `[options]`: Additional options (e.g., filtering test cases, verbosity).
 
 **Example:**
 
 ```bash
-mmat run tests/functional/login_test_plan.yaml --plan-type yaml --config config/config.yaml
+mmat run tests/functional/login_test_plan.yaml --config config/config.yaml
 ```
 
 This will execute the test plan in `tests/functional/login_test_plan.yaml` with settings from `config/config.yaml`.
 
-### `mmat build`
+### `mmat generate`
 
-The `mmat build` command is intended for generating or processing test plans—often using the configured models. Its primary roles may include:
+The `mmat generate` command is used for generating new test plans from descriptions. Its primary roles include:
 
 *   Generating a structured test plan (YAML/JSON) from a less-structured input (e.g., a functional description) using a reasoning model.
-*   Updating or expanding an existing test plan based on new information or analysis.
-*   Performing static analysis on a test plan.
 
 **Syntax:**
 
 ```bash
-mmat build <input_identifier> --input-type <type> --output <output_path> --config <config_file> [options]
+mmat generate --desc <description> --output <output_path> [--force]
 ```
 
-*   `<input_identifier>`: Source for building the plan (e.g., a functional description file, URL, etc.).
-*   `--input-type <type>`: Format of the input (e.g., `markdown`, `url`, `json`).
-*   `--output <output_path>`: Path to save the generated/processed test plan (e.g., `tests/generated/auth_tests.yaml`).
-*   `--config <config_file>`: Path to your MMAT configuration file (for models, environment, etc.).
-*   `[options]`: Additional options controlling generation.
+*   `--desc <description>`: Description of the test to generate (can be a file path or a string).
+*   `--output <output_path>`: Output path for the generated test plan file (JSON or YAML).
+*   `--force` (Optional): Overwrite output file if it already exists.
 
 **Example:**
 
 ```bash
-mmat build functional_description.md --input-type markdown --output tests/generated/auth_tests.yaml --config config/config.yaml
+mmat generate --desc functional_description.md --output tests/generated/auth_tests.yaml --force
 ```
 
 This would generate a YAML test plan at `tests/generated/auth_tests.yaml` based on `functional_description.md`, using models defined in `config/config.yaml`.
@@ -515,6 +511,93 @@ mmat describe tests/functional/login_test_plan.yaml
 
 This will load the test plan and print the generated functional description directly to your terminal.
 
+### `mmat list`
+
+The `mmat list` command is used to list available test plans or functional descriptions within your project. You can filter the listing by file type and specify a path to search.
+
+When you run `mmat list`, MMAT will:
+
+1.  Search for files in the specified directory and its subdirectories.
+2.  Filter files based on the `--type` argument (functional test plans, E2E scripts, or all).
+3.  Print the relative paths of the found files.
+
+**Syntax:**
+
+```bash
+mmat list [--type <type>] [--path <path>]
+```
+
+*   `--type <type>` (Optional): Type of files to list: `functional` (YAML/JSON test plans), `e2e` (Playwright Python scripts), or `all` (default).
+*   `--path <path>` (Optional): Path to the directory to search for files (default: current directory `.`).
+
+**Examples:**
+
+```bash
+mmat list --type all --path .
+```
+
+This will list all functional test plans and E2E scripts in the current directory and its subdirectories.
+
+```bash
+mmat list --type functional --path tests/functional
+```
+
+This will list only functional test plans in the `tests/functional` directory.
+
+### `mmat show`
+
+The `mmat show` command is used to display the content of a specific test plan or functional description file. This is useful for quickly reviewing the details of a test asset directly from the command line.
+
+When you run `mmat show`, MMAT will:
+
+1.  Read the content of the specified file.
+2.  Print the content to your terminal.
+
+**Syntax:**
+
+```bash
+mmat show <file_path>
+```
+
+*   `<file_path>`: Path to the file to display (e.g., `tests/functional/login_test_plan.yaml` or `functional_descriptions/login_description.md`).
+
+**Example:**
+
+```bash
+mmat show tests/functional/login_test_plan.yaml
+```
+
+This will display the content of `login_test_plan.yaml` in your terminal.
+
+### `mmat feedback`
+
+The `mmat feedback` command is designed to facilitate interactive test improvement, especially after a test run failure. It leverages the reasoning model to analyze test results and suggest modifications to the test plan.
+
+When you run `mmat feedback`, MMAT will:
+
+1.  Load the specified test plan and optionally a test report for context.
+2.  Initiate an interactive session (if the reasoning model is configured).
+3.  Allow you to provide input or review suggestions for improving the test plan based on the feedback context.
+
+**Syntax:**
+
+```bash
+mmat feedback <test_plan_path> [--step <step_number>] [--report <report_path>] [--config <config_file>]
+```
+
+*   `<test_plan_path>`: Path to the test plan file (YAML or JSON) for which to provide feedback.
+*   `--step <step_number>` (Optional): The specific step number (1-based index) to provide feedback for. If not provided, feedback applies to the entire test.
+*   `--report <report_path>` (Optional): Path to the test report file (e.g., JSON) to use for context.
+*   `--config <config_file>`: Path to the configuration file (YAML or JSON).
+
+**Example:**
+
+```bash
+mmat feedback tests/functional/failed_test_plan.yaml --report reports/latest_run.json
+```
+
+This will start a feedback session for `failed_test_plan.yaml`, using `latest_run.json` for context.
+
 ## Contributing (Planned)
 
 Contributions are welcome! Please see the `CONTRIBUTING.md` (to be created) for details on how to propose changes, run tests, and submit pull requests.
@@ -527,12 +610,12 @@ This project is licensed under the MIT License—see the [LICENSE](LICENSE) file
 
 *   Mention any libraries, tools, or resources that were helpful.
 
-## Features (Planned)
+## Features
 
-*   **Model-based Test Plan Generation:** Generate test suites and test cases from functional descriptions or structured data using AI models.
+*   **Model-based Test Plan Generation:** Generate test suites and test cases from functional descriptions or structured data using AI models. - **Implemented**
 *   **Environment Interaction:** Interact with various environments (e.g., web browsers via Puppeteer) to execute test steps.
 *   **Test Data Management:** Manage and utilize test data for test execution.
 *   **Validation and Analysis:** Validate test results and analyze outcomes using models.
 *   **Reporting:** Generate test reports in various formats.
 *   **Plugin System:** Allow extending the framework with custom components (environments, reporters, models, etc.).
-*   **CLI Interface:** Command-line interface for running and building test plans.
+*   **CLI Interface:** Command-line interface for running and building test plans. - **Implemented**
